@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0dd"/>
+      <stop offset="0.48" stop-color="#e4eefb"/>
+      <stop offset="1" stop-color="#d7e6f5"/>
+    </linearGradient>
+    <radialGradient id="warm" cx="0.17" cy="0.1" r="0.72">
+      <stop offset="0" stop-color="#ffab63" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#ffdcb8" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffe7cf" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mint" cx="0.86" cy="0.34" r="0.62">
+      <stop offset="0" stop-color="#74d6b0" stop-opacity="0.68"/>
+      <stop offset="1" stop-color="#bfe8d6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sky" cx="0.62" cy="0.92" r="0.7">
+      <stop offset="0" stop-color="#8bbcf0" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#c6ddf5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lilac" cx="0.42" cy="0.6" r="0.5">
+      <stop offset="0" stop-color="#c3a4ee" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#e3d9f6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="streak" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.045"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#base)"/>
+  <rect width="1600" height="1000" fill="url(#warm)"/>
+  <rect width="1600" height="1000" fill="url(#mint)"/>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <rect width="1600" height="1000" fill="url(#lilac)"/>
+  <g opacity="0.5">
+    <path d="M -120 860 C 320 700 560 760 900 520 C 1180 320 1400 300 1720 150" fill="none" stroke="url(#streak)" stroke-width="150" stroke-linecap="round"/>
+    <path d="M -80 940 C 380 820 700 860 1020 700" fill="none" stroke="url(#streak)" stroke-width="60" stroke-linecap="round" opacity="0.6"/>
+  </g>
+  <rect width="1600" height="1000" filter="url(#grain)"/>
+</svg>
