@@ -99,7 +99,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/hongxsen/dsh_plugins",
-            "commit": "850aa9747c628012a0173b534d3308d7dfb135c1",
+            "commit": "3f19922d8299ddfb42c8a092d047a880f553adae",
             "path": "plugins/co-write"
           },
           "engines": {
