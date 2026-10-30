@@ -9,6 +9,7 @@ const inject = [
   'slots',
   'sessions',
   'conversation',
+  'uiConversation',
   'locale',
 ]
 

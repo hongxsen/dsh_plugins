@@ -91,6 +91,76 @@ export function locationLine(comment, lang = 'zh') {
   return parts.join(' · ')
 }
 
+
+/** Marker line prepended to every sent review message, consumed by the bubble renderer. */
+export const REFS_MARKER = '[dsh-co-write-refs count='
+
+/**
+ * Find the review marker at or after one offset.
+ * @param {string} text - complete original message.
+ * @param {number} from - inclusive UTF-16 offset.
+ * @returns {{start: number, end: number, count: number}|undefined} marker range and count.
+ */
+export function findRefsMarker(text, from = 0) {
+  const pattern = /\[dsh-co-write-refs count=(\d+)\]/gu
+  pattern.lastIndex = from
+  const match = pattern.exec(text)
+  if (match === null) return undefined
+  return {
+    start: match.index,
+    end: match.index + match[0].length,
+    count: Number(match[1]),
+  }
+}
+
+/**
+ * Parse the details section back into review cards for the transcript renderer.
+ * @param {string} details - text after the marker.
+ * @returns {readonly object[]} parsed sections; empty when the format is unrecognised.
+ */
+export function parseCommentDetails(details) {
+  const text = cleanText(details)
+  const heading = /^### (?:评论|Comment) (\d+) · (.+)$/gmu
+  const matches = [...text.matchAll(heading)]
+  if (matches.length === 0) return []
+  return matches.map((match, index) => {
+    const nextStart = index + 1 < matches.length ? matches[index + 1].index : text.length
+    const section = text.slice(match.index + match[0].length, nextStart).trim()
+    const sourceMatch = /(?:原文|Quoted text)[：:]\s*\n?/u.exec(section)
+    let subtitle = ''
+    let quote = ''
+    let comment = ''
+    if (sourceMatch !== null) {
+      subtitle = section.slice(0, sourceMatch.index).trim()
+      const after = section.slice(sourceMatch.index + sourceMatch[0].length)
+      const commentMatch = /(?:^|\n)(?:评论|Comment)[：:]\s*/u.exec(after)
+      if (commentMatch !== null) {
+        quote = after.slice(0, commentMatch.index).trim()
+        comment = after.slice(commentMatch.index + commentMatch[0].length).trim()
+      } else {
+        quote = after.trim()
+      }
+    } else {
+      quote = section
+    }
+    quote = quote.split('\n').map(line => line.replace(/^>\s?/u, '')).join('\n').trim()
+    return { number: Number(match[1]), title: match[2].trim(), subtitle, quote, comment }
+  })
+}
+
+/** Short source label used by the compact review chips. */
+export function shortSourceLabel(comment, lang = 'zh') {
+  const meta = comment.meta ?? {}
+  if (comment.source === 'chat') {
+    if (lang === 'zh') return meta.role === 'assistant' ? '助手' : '用户'
+    return meta.role === 'assistant' ? 'Assistant' : 'User'
+  }
+  const path = typeof meta.path === 'string' && meta.path !== '' ? meta.path : ''
+  const name = path.slice(path.lastIndexOf('/') + 1)
+  if (name !== '') return name
+  return lang === 'zh' ? '文件' : 'File'
+}
+
 /** Format one comment as the Markdown section sent with the next message. */
 export function formatComment(comment, index, lang = 'zh') {
   const title = comment.label && comment.label.trim() !== ''
@@ -118,7 +188,8 @@ export function buildCommentMessage(comments, lang = 'zh') {
     ? '以下是我对选中原文的评论，请把原文和评论一并作为本轮对话的输入：'
     : 'Here are my comments on the selected material. Treat the quoted text and comments as input for this turn:'
   const body = comments.map((comment, index) => formatComment(comment, index + 1, lang))
-  const text = [header, ...body].join('\n\n')
+  const marker = `${REFS_MARKER}${comments.length}]`
+  const text = [marker, header, ...body].join('\n\n')
   if (text.length > MAX_TOTAL) return { text, error: 'too-long' }
   return { text, error: null }
 }

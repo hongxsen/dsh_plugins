@@ -1,8 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  MAX_COMMENT, MAX_EXCERPT, MAX_TOTAL, buildCommentMessage, clipText, formatComment,
-  normalizeComment, normalizeComments, quoteLines, sourceLabel, storageKey, summarize, totalSize,
+  MAX_COMMENT, MAX_EXCERPT, MAX_TOTAL, buildCommentMessage, clipText, findRefsMarker, formatComment,
+  normalizeComment, normalizeComments, parseCommentDetails, quoteLines, shortSourceLabel, sourceLabel,
+  storageKey, summarize, totalSize,
 } from '../src/core.mjs'
 
 test('quoteLines prefixes every line and keeps empty lines quoted', () => {
@@ -70,6 +71,7 @@ test('buildCommentMessage numbers comments and quotes the source', () => {
   ]
   const { text, error } = buildCommentMessage(comments, 'zh')
   assert.equal(error, null)
+  assert.match(text, /^\[dsh-co-write-refs count=2\]/)
   assert.match(text, /请把原文和评论一并作为本轮对话的输入/)
   assert.match(text, /### 评论 1 · 对话 · 用户消息/)
   assert.match(text, /> line one\n> line two/)
@@ -92,4 +94,44 @@ test('comment limits and storage key compose', () => {
     { content: 'abcd', comment: 'ef' },
     { content: 'g', comment: 'h' },
   ]), 8)
+})
+
+
+test('findRefsMarker locates the sent marker', () => {
+  const text = 'question\n\n[dsh-co-write-refs count=3]\n### 评论 1'
+  const marker = findRefsMarker(text)
+  assert.equal(marker?.count, 3)
+  assert.equal(marker?.start, text.indexOf('[dsh'))
+  assert.equal(findRefsMarker('no marker'), undefined)
+})
+
+test('parseCommentDetails recovers quote and comment sections', () => {
+  const details = `以下是我对选中原文的评论：
+
+### 评论 1 · 对话 · 用户消息
+原文：
+> line one
+> line two
+
+评论：改短一点
+
+### 评论 2 · 工作区 · a.ts
+行 3–4
+原文：
+> const x = 1
+评论：改名`
+  const sections = parseCommentDetails(details)
+  assert.equal(sections.length, 2)
+  assert.equal(sections[0].number, 1)
+  assert.equal(sections[0].quote, 'line one\nline two')
+  assert.equal(sections[0].comment, '改短一点')
+  assert.equal(sections[1].subtitle, '行 3–4')
+  assert.equal(sections[1].quote, 'const x = 1')
+  assert.equal(sections[1].comment, '改名')
+})
+
+test('shortSourceLabel keeps chips compact', () => {
+  assert.equal(shortSourceLabel({ source: 'chat', meta: { role: 'user' } }, 'zh'), '用户')
+  assert.equal(shortSourceLabel({ source: 'file', meta: { path: 'src/App.tsx' } }, 'zh'), 'App.tsx')
+  assert.equal(shortSourceLabel({ source: 'file', meta: {} }, 'en'), 'File')
 })
