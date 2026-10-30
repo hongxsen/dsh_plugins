@@ -1,6 +1,6 @@
 {
   "name": "@hongxsen/dsh-wallpaper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Paints an original gradient wallpaper behind the DSH Web UI and frosts the app surfaces so it shows through.",
   "keywords": [
@@ -42,7 +42,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hongxsen/dsh_plugins.git"
+    "url": "git+https://github.com/hongxsen/dsh_plugins.git",
+    "directory": "plugins/wallpaper"
   },
   "homepage": "https://github.com/hongxsen/dsh_plugins#readme"
 }
