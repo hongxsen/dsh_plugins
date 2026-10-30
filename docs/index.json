@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "title": {
+    "en": "hongxsen DSH plugins",
+    "zh": "hongxsen 的 DSH 插件"
+  },
+  "description": {
+    "en": "Plugins for the DeepSeek Harness Web UI.",
+    "zh": "DeepSeek Harness Web 界面插件。"
+  },
+  "metadata": {
+    "categories": {
+      "appearance": {
+        "title": {
+          "en": "Appearance",
+          "zh": "外观"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@hongxsen/dsh-wallpaper",
+      "title": {
+        "en": "Wallpaper",
+        "zh": "壁纸"
+      },
+      "description": {
+        "en": "Paints an original gradient wallpaper behind the Web UI and frosts the interface so it shows through.",
+        "zh": "在 Web 界面背后铺一张原创渐变壁纸，并把界面做成磨砂效果让壁纸透出来。"
+      },
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IldhbGxwYXBlciI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNreSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmN2ZiZmYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZGJlOGY2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGNsaXBQYXRoIGlkPSJmcmFtZSI+CiAgICAgIDxyZWN0IHg9IjYiIHk9IjEwIiB3aWR0aD0iNTIiIGhlaWdodD0iNDQiIHJ4PSI5Ii8+CiAgICA8L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8cmVjdCB4PSI2IiB5PSIxMCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjQ0IiByeD0iOSIgZmlsbD0idXJsKCNza3kpIi8+CiAgPGcgY2xpcC1wYXRoPSJ1cmwoI2ZyYW1lKSI+CiAgICA8Y2lyY2xlIGN4PSI0MSIgY3k9IjI2IiByPSI2LjUiIGZpbGw9IiNmMmIyNmIiLz4KICAgIDxwYXRoIGQ9Ik00IDUwIEwyMCAzMyBMMzEgNDMgTDM5IDM2IEw2MCA1MCBMNjAgNTggTDQgNTggWiIgZmlsbD0iIzZmOWJjOSIvPgogICAgPHBhdGggZD0iTTQgNTQgTDE4IDQ0IEwzMCA1MiBMNDQgNDUgTDYwIDU0IEw2MCA1OCBMNCA1OCBaIiBmaWxsPSIjNGQ3YWE5IiBvcGFjaXR5PSIwLjg1Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjYiIHk9IjEwIiB3aWR0aD0iNTIiIGhlaWdodD0iNDQiIHJ4PSI5IiBmaWxsPSJub25lIiBzdHJva2U9IiM4ZmE5YzQiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K",
+      "author": "hongxsen",
+      "homepage": "https://github.com/hongxsen/dsh_plugins#readme",
+      "repository": {
+        "url": "https://github.com/hongxsen/dsh_plugins"
+      },
+      "metadata": {
+        "category": "appearance",
+        "keywords": [
+          "wallpaper",
+          "theme",
+          "background"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 1793379590,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/hongxsen/dsh_plugins",
+            "commit": "09b22a8a72cca9b39b2efe918ebd4097b02a10d0"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-0 <0.3.0"
+          }
+        }
+      ]
+    }
+  ]
+}
