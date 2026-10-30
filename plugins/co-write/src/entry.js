@@ -18,5 +18,5 @@ const inject = [
  * @param ctx - Client root context.
  */
 function apply(ctx) {
-  install(ctx, React)
+  install(ctx, React, ReactDOM)
 }

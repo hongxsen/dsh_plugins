@@ -35,6 +35,7 @@ window.__ModuleLoader__.load({
   id: '@hongxsen/dsh-co-write',
   factory(require) {
     const React = require('react')
+    const ReactDOM = require('react-dom')
 
 ${core}
 

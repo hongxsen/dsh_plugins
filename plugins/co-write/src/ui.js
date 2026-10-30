@@ -23,6 +23,7 @@ const STRINGS = {
     barHint: '将在下一条消息中一并发送 · 点击引用可修改评论',
     more: '+{count}',
     less: '收起',
+    detailTitle: '引用详情',
     detailDelete: '删除',
     detailCancel: '取消',
     detailSave: '保存',
@@ -57,6 +58,7 @@ const STRINGS = {
     barHint: 'Sent with your next message · click a quote to edit its comment',
     more: '+{count}',
     less: 'Less',
+    detailTitle: 'Quote details',
     detailDelete: 'Delete',
     detailCancel: 'Cancel',
     detailSave: 'Save',
@@ -143,75 +145,84 @@ const SELECTION_CSS = `
 `
 
 const BAR_CSS = `
-.cowrite-bar {
-  box-sizing: border-box; width: calc(100% - 36px); margin: 0 auto 8px; padding: 8px 10px 6px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.12));
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1, #ffffff) 92%, transparent);
-  box-shadow: var(--dsw-elevation-soft, 0 4px 16px rgba(2, 8, 20, 0.06));
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+.cowrite-pending-row {
+  box-sizing: border-box; width: calc(100% - 36px); margin: 0 auto 8px;
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+  padding: 0; background: none;
 }
-.cowrite-bar-head { display: flex; align-items: center; gap: 8px; }
-.cowrite-bar-title { flex: 1; min-width: 0; color: var(--dsw-alias-label-primary, #1f2328); font-size: 12px; font-weight: 600; }
-.cowrite-bar-clear {
-  border: 0; border-radius: 6px; padding: 2px 6px; background: transparent;
-  color: var(--dsw-alias-label-tertiary, #8a8f98); font: inherit; font-size: 11px; cursor: pointer;
+.cowrite-pending-chip {
+  display: inline-flex; align-items: center; gap: 5px; flex: none; max-width: 230px; height: 26px;
+  padding: 0 9px 0 5px; border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
+  background: var(--dsw-alias-bg-layer-1, #ffffff);
+  color: var(--dsw-alias-label-secondary, #5f6368);
+  box-shadow: var(--dsw-elevation-soft, 0 3px 10px rgba(2, 8, 20, 0.06));
+  font: inherit; font-size: 11.5px; cursor: pointer; white-space: nowrap;
 }
-.cowrite-bar-clear:hover { color: var(--dsw-alias-label-error, #c62828); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
-.cowrite-chips { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 6px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
-.cowrite-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 188px; height: 24px; flex: none; padding: 0 8px 0 5px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(15, 23, 42, 0.1)); border-radius: 999px;
-  background: var(--dsw-alias-bg-base, #ffffff); color: var(--dsw-alias-label-secondary, #5f6368);
-  font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap;
+.cowrite-pending-chip:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05));
+  color: var(--dsw-alias-label-primary, #1f2328);
 }
-.cowrite-chip:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); color: var(--dsw-alias-label-primary, #1f2328); }
-.cowrite-chip[data-active] { border-color: var(--dsw-alias-brand-primary, #4d6bfe); background: color-mix(in srgb, var(--dsw-alias-brand-primary, #4d6bfe) 10%, transparent); color: var(--dsw-alias-label-primary, #1f2328); }
-.cowrite-chip-num {
+.cowrite-pending-num {
   display: grid; place-items: center; flex: none; width: 16px; height: 16px;
   border-radius: 50%; background: var(--dsw-alias-brand-primary, #4d6bfe);
   color: var(--dsw-alias-label-primary-inverted, #ffffff); font-size: 10px; font-weight: 600;
 }
-.cowrite-chip-label { flex: none; font-weight: 600; }
-.cowrite-chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dsw-alias-label-tertiary, #8a8f98); }
-.cowrite-chip-more { border-style: dashed; color: var(--dsw-alias-label-tertiary, #8a8f98); }
-.cowrite-bar-hint { margin-top: 5px; color: var(--dsw-alias-label-tertiary, #8a8f98); font-size: 10.5px; }
-.cowrite-detail {
-  display: flex; flex-direction: column; gap: 6px; margin-top: 7px; padding: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.12)); border-radius: 10px;
-  background: var(--dsw-alias-bg-base, #ffffff);
+.cowrite-pending-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dsw-alias-label-tertiary, #8a8f98); }
+.cowrite-pending-more { border-style: dashed; color: var(--dsw-alias-label-tertiary, #8a8f98); }
+.cowrite-pending-clear {
+  flex: none; border: 0; border-radius: 5px; padding: 2px 5px; background: transparent;
+  color: var(--dsw-alias-label-tertiary, #8a8f98); font: inherit; font-size: 11px; cursor: pointer;
 }
-.cowrite-detail-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.cowrite-detail-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; font-weight: 600; }
-.cowrite-detail-meta { flex: none; color: var(--dsw-alias-label-tertiary, #8a8f98); font-size: 10.5px; }
-.cowrite-detail-delete {
-  margin-left: auto; flex: none; border: 0; border-radius: 5px; padding: 2px 6px; background: transparent;
-  color: var(--dsw-alias-label-tertiary, #8a8f98); font: inherit; font-size: 10.5px; cursor: pointer;
+.cowrite-pending-clear:hover { color: var(--dsw-alias-label-error, #c62828); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
+.cowrite-modal-root {
+  position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+  font-family: var(--dsw-font-family, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: 12.5px; color: var(--dsw-alias-label-primary, #1f2328);
 }
-.cowrite-detail-delete:hover { color: var(--dsw-alias-label-error, #c62828); background: var(--dsw-alias-interactive-bg-hover-danger, rgba(198, 40, 40, 0.08)); }
-.cowrite-detail-quote {
-  max-height: 108px; overflow: auto; padding: 6px 8px; border-radius: 7px;
+.cowrite-modal-backdrop { position: absolute; inset: 0; background: rgba(8, 12, 18, 0.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.cowrite-modal {
+  position: relative; display: flex; flex-direction: column; gap: 8px;
+  width: min(560px, calc(100vw - 24px)); max-height: min(80vh, 640px); padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14)); border-radius: 16px;
+  background: var(--dsw-alias-bg-layer-1, #ffffff);
+  box-shadow: var(--dsw-elevation-prominent, 0 24px 64px rgba(2, 8, 20, 0.32));
+}
+.cowrite-modal-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cowrite-modal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+.cowrite-modal-meta { flex: none; color: var(--dsw-alias-label-tertiary, #8a8f98); font-size: 11px; }
+.cowrite-modal-close {
+  margin-left: auto; flex: none; display: grid; place-items: center; width: 26px; height: 26px;
+  padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--dsw-alias-label-tertiary, #8a8f98);
+  font: inherit; font-size: 18px; line-height: 1; cursor: pointer;
+}
+.cowrite-modal-close:hover { color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
+.cowrite-modal-quote {
+  max-height: 220px; overflow: auto; padding: 8px 10px; border-radius: 8px;
   background: var(--dsw-alias-markdown-code-block, #f6f8fa); color: var(--dsw-alias-label-secondary, #4b5563);
   font-family: var(--dsw-font-markdown-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 10.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.cowrite-detail-input {
-  width: 100%; min-height: 52px; max-height: 140px; resize: vertical; padding: 7px 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.16)); border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-1, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
-  font: inherit; font-size: 12px; line-height: 1.5; outline: none;
+.cowrite-modal-input {
+  width: 100%; min-height: 92px; max-height: 220px; resize: vertical; padding: 8px 9px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.16)); border-radius: 9px;
+  background: var(--dsw-alias-bg-base, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
+  font: inherit; line-height: 1.5; outline: none;
 }
-.cowrite-detail-input:focus { border-color: var(--dsw-alias-brand-primary, #4d6bfe); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary, #4d6bfe) 14%, transparent); }
-.cowrite-detail-error { color: var(--dsw-alias-label-error, #c62828); font-size: 10.5px; }
-.cowrite-detail-actions { display: flex; justify-content: flex-end; gap: 6px; }
-.cowrite-detail-btn {
-  min-height: 26px; padding: 0 10px; border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
-  border-radius: 7px; background: var(--dsw-alias-bg-layer-1, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
-  font: inherit; font-size: 11.5px; cursor: pointer;
+.cowrite-modal-input:focus { border-color: var(--dsw-alias-brand-primary, #4d6bfe); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary, #4d6bfe) 14%, transparent); }
+.cowrite-modal-error { color: var(--dsw-alias-label-error, #c62828); font-size: 11px; }
+.cowrite-modal-actions { display: flex; align-items: center; gap: 8px; }
+.cowrite-modal-spacer { flex: 1; }
+.cowrite-modal-btn {
+  min-height: 28px; padding: 0 11px; border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
+  border-radius: 8px; background: var(--dsw-alias-bg-layer-1, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
+  font: inherit; font-size: 12px; cursor: pointer;
 }
-.cowrite-detail-btn:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
-.cowrite-detail-btn.primary { background: var(--dsw-alias-brand-primary, #4d6bfe); border-color: transparent; color: var(--dsw-alias-label-primary-inverted, #ffffff); }
-.cowrite-detail-btn:disabled { opacity: 0.45; cursor: default; }
+.cowrite-modal-btn:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
+.cowrite-modal-btn.primary { background: var(--dsw-alias-brand-primary, #4d6bfe); border-color: transparent; color: var(--dsw-alias-label-primary-inverted, #ffffff); }
+.cowrite-modal-btn.danger { color: var(--dsw-alias-label-error, #c62828); }
+.cowrite-modal-btn:disabled { opacity: 0.45; cursor: default; }
 .cowrite-refs { display: inline-flex; flex-direction: column; align-items: flex-start; max-width: 100%; margin-top: 4px; vertical-align: top; }
 .cowrite-refs-toggle {
   display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 8px;
@@ -861,11 +872,11 @@ function createRefsText(React, t) {
   return CoWriteRefsText
 }
 
-function createReviewBar(React, store, t, lang) {
+function createReviewBar(React, ReactDOM, store, t, lang) {
   const MAX_CHIPS = 3
   function ReviewBar({ sessionId }) {
     const [comments, setComments] = React.useState(() => sessionId === undefined ? [] : store.get(sessionId))
-    const [expandedId, setExpandedId] = React.useState(null)
+    const [editingId, setEditingId] = React.useState(null)
     const [showAll, setShowAll] = React.useState(false)
     const [draft, setDraft] = React.useState('')
     const [error, setError] = React.useState(null)
@@ -880,47 +891,55 @@ function createReviewBar(React, store, t, lang) {
     }, [sessionId])
 
     React.useEffect(() => {
-      if (expandedId !== null && !comments.some(comment => comment.id === expandedId)) {
-        setExpandedId(null)
+      if (editingId !== null && !comments.some(comment => comment.id === editingId)) {
+        setEditingId(null)
         setDraft('')
         setError(null)
       }
-    }, [comments, expandedId])
+    }, [comments, editingId])
+
+    React.useEffect(() => {
+      if (editingId === null) return undefined
+      const onKeyDown = event => {
+        if (event.key !== 'Escape' || event.isComposing) return
+        event.preventDefault()
+        event.stopPropagation()
+        setEditingId(null)
+        setDraft('')
+        setError(null)
+      }
+      document.addEventListener('keydown', onKeyDown, true)
+      return () => document.removeEventListener('keydown', onKeyDown, true)
+    }, [editingId])
 
     if (sessionId === undefined || !Array.isArray(comments) || comments.length === 0) return null
-    const expanded = comments.find(comment => comment.id === expandedId)
+    const editing = comments.find(comment => comment.id === editingId)
     const visible = showAll || comments.length <= MAX_CHIPS ? comments : comments.slice(0, MAX_CHIPS)
     const hidden = comments.length - visible.length
-    const location = expanded === undefined ? '' : locationLine(expanded, lang)
 
-    const toggle = comment => {
-      if (expandedId === comment.id) {
-        setExpandedId(null)
-        setDraft('')
-        setError(null)
-        return
-      }
-      setExpandedId(comment.id)
+    const close = () => {
+      setEditingId(null)
+      setDraft('')
+      setError(null)
+    }
+    const open = comment => {
+      setEditingId(comment.id)
       setDraft(comment.comment)
       setError(null)
     }
     const save = () => {
-      if (expanded === undefined) return
-      const outcome = store.update(sessionId, expanded.id, draft)
+      if (editing === undefined) return
+      const outcome = store.update(sessionId, editing.id, draft)
       if (!outcome.ok) {
         setError(outcome.error === 'empty' ? t.detailEmpty : t.detailTooLong)
         return
       }
-      setExpandedId(null)
-      setDraft('')
-      setError(null)
+      close()
     }
     const remove = () => {
-      if (expanded === undefined) return
-      store.remove(sessionId, expanded.id)
-      setExpandedId(null)
-      setDraft('')
-      setError(null)
+      if (editing === undefined) return
+      store.remove(sessionId, editing.id)
+      close()
     }
 
     const chips = visible.map(comment => {
@@ -928,21 +947,19 @@ function createReviewBar(React, store, t, lang) {
       return React.createElement('button', {
         type: 'button',
         key: comment.id,
-        className: 'cowrite-chip',
+        className: 'cowrite-pending-chip',
         title: `${number}. ${comment.label} — ${comment.comment}`,
-        'data-active': expandedId === comment.id ? true : undefined,
-        onClick: () => toggle(comment),
+        onClick: () => open(comment),
       },
-      React.createElement('span', { className: 'cowrite-chip-num' }, String(number)),
-      React.createElement('span', { className: 'cowrite-chip-label' }, shortSourceLabel(comment, lang)),
-      React.createElement('span', { className: 'cowrite-chip-text' }, summarize(comment.content, 14)),
+      React.createElement('span', { className: 'cowrite-pending-num' }, String(number)),
+      React.createElement('span', { className: 'cowrite-pending-text' }, summarize(comment.content, 16)),
       )
     })
     if (hidden > 0) {
       chips.push(React.createElement('button', {
         type: 'button',
         key: 'more',
-        className: 'cowrite-chip cowrite-chip-more',
+        className: 'cowrite-pending-chip cowrite-pending-more',
         onClick: () => setShowAll(true),
       }, interpolate(t.more, { count: hidden })))
     }
@@ -950,87 +967,98 @@ function createReviewBar(React, store, t, lang) {
       chips.push(React.createElement('button', {
         type: 'button',
         key: 'less',
-        className: 'cowrite-chip cowrite-chip-more',
+        className: 'cowrite-pending-chip cowrite-pending-more',
         onClick: () => setShowAll(false),
       }, t.less))
     }
 
-    const detail = expanded === undefined ? null : React.createElement('div', { className: 'cowrite-detail' },
-      React.createElement('div', { className: 'cowrite-detail-head' },
-        React.createElement('span', { className: 'cowrite-detail-title' }, `#${comments.indexOf(expanded) + 1} · ${expanded.label}`),
-        location === '' ? null : React.createElement('span', { className: 'cowrite-detail-meta' }, location),
-        React.createElement('button', {
-          type: 'button',
-          className: 'cowrite-detail-delete',
-          title: t.detailDelete,
-          onClick: remove,
-        }, t.detailDelete),
-      ),
-      React.createElement('div', { className: 'cowrite-detail-quote' }, expanded.content),
-      React.createElement('textarea', {
-        className: 'cowrite-detail-input',
-        value: draft,
-        placeholder: t.detailPlaceholder,
-        'aria-label': t.detailPlaceholder,
-        onChange: event => {
-          setDraft(event.target.value)
-          if (error !== null) setError(null)
+    const modal = editing === undefined ? null : ReactDOM.createPortal(
+      React.createElement('div', { className: 'cowrite-modal-root' },
+        React.createElement('div', { className: 'cowrite-modal-backdrop', onClick: close }),
+        React.createElement('div', {
+          className: 'cowrite-modal',
+          role: 'dialog',
+          'aria-modal': 'true',
+          'aria-label': t.detailTitle,
         },
-        onKeyDown: event => {
-          if (event.isComposing) return
-          if (event.key === 'Escape') {
-            event.stopPropagation()
-            setExpandedId(null)
-            setDraft('')
-            setError(null)
-          } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-            event.preventDefault()
-            event.stopPropagation()
-            save()
-          }
-        },
-      }),
-      error === null ? null : React.createElement('div', { className: 'cowrite-detail-error' }, error),
-      React.createElement('div', { className: 'cowrite-detail-actions' },
-        React.createElement('button', {
-          type: 'button',
-          className: 'cowrite-detail-btn',
-          onClick: () => { setExpandedId(null); setDraft(''); setError(null) },
-        }, t.detailCancel),
-        React.createElement('button', {
-          type: 'button',
-          className: 'cowrite-detail-btn primary',
-          disabled: draft.trim() === '',
-          onClick: save,
-        }, t.detailSave),
+        React.createElement('div', { className: 'cowrite-modal-head' },
+          React.createElement('span', { className: 'cowrite-modal-title' }, `#${comments.indexOf(editing) + 1} · ${editing.label}`),
+          locationLine(editing, lang) === '' ? null : React.createElement('span', { className: 'cowrite-modal-meta' }, locationLine(editing, lang)),
+          React.createElement('button', {
+            type: 'button',
+            className: 'cowrite-modal-close',
+            title: t.detailCancel,
+            onClick: close,
+          }, '×'),
+        ),
+        React.createElement('div', { className: 'cowrite-modal-quote' }, editing.content),
+        React.createElement('textarea', {
+          className: 'cowrite-modal-input',
+          value: draft,
+          autoFocus: true,
+          placeholder: t.detailPlaceholder,
+          'aria-label': t.detailPlaceholder,
+          onChange: event => {
+            setDraft(event.target.value)
+            if (error !== null) setError(null)
+          },
+          onKeyDown: event => {
+            if (event.isComposing) return
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+              event.preventDefault()
+              event.stopPropagation()
+              save()
+            }
+          },
+        }),
+        error === null ? null : React.createElement('div', { className: 'cowrite-modal-error' }, error),
+        React.createElement('div', { className: 'cowrite-modal-actions' },
+          React.createElement('button', {
+            type: 'button',
+            className: 'cowrite-modal-btn danger',
+            onClick: remove,
+          }, t.detailDelete),
+          React.createElement('span', { className: 'cowrite-modal-spacer' }),
+          React.createElement('button', {
+            type: 'button',
+            className: 'cowrite-modal-btn',
+            onClick: close,
+          }, t.detailCancel),
+          React.createElement('button', {
+            type: 'button',
+            className: 'cowrite-modal-btn primary',
+            disabled: draft.trim() === '',
+            onClick: save,
+          }, t.detailSave),
+        ),
+        ),
       ),
+      document.body,
     )
 
-    return React.createElement('section', {
-      className: 'cowrite-bar',
-      'data-co-write-bar': '',
-      'aria-label': interpolate(t.barTitle, { count: comments.length }),
-      'aria-live': 'polite',
-    },
-    React.createElement('div', { className: 'cowrite-bar-head' },
-      React.createElement('span', { className: 'cowrite-bar-title' }, interpolate(t.barTitle, { count: comments.length })),
+    return React.createElement(React.Fragment, null,
+      React.createElement('div', {
+        className: 'cowrite-pending-row',
+        'data-co-write-bar': '',
+        'aria-live': 'polite',
+        'aria-label': interpolate(t.barTitle, { count: comments.length }),
+      },
+      chips,
       React.createElement('button', {
         type: 'button',
-        className: 'cowrite-bar-clear',
+        className: 'cowrite-pending-clear',
         title: t.clearTitle,
         onClick: () => store.clear(sessionId),
       }, t.clear),
-    ),
-    React.createElement('div', { className: 'cowrite-chips' }, chips),
-    detail,
-    React.createElement('div', { className: 'cowrite-bar-hint' }, t.barHint),
+      ),
+      modal,
     )
   }
   ReviewBar.displayName = 'CoWriteReviewBar'
   return ReviewBar
 }
 
-function install(ctx, React) {
+function install(ctx, React, ReactDOM) {
   const lang = localeLanguageOf(ctx)
   const t = STRINGS[lang]
   const store = createCommentStore(lang)
@@ -1062,7 +1090,7 @@ function install(ctx, React) {
     priority: 100,
   }, RefsText))
 
-  const ReviewBar = createReviewBar(React, store, t, lang)
+  const ReviewBar = createReviewBar(React, ReactDOM, store, t, lang)
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock',
     id: 'co-write.comments',
