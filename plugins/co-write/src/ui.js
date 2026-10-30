@@ -146,7 +146,9 @@ const SELECTION_CSS = `
 
 const BAR_CSS = `
 .cowrite-pending-row {
-  box-sizing: border-box; width: calc(100% - 36px); margin: 0 auto 8px;
+  box-sizing: border-box;
+  width: min(calc(100% - 2 * var(--dsh-composer-side-clearance, 16px)), var(--dsh-composer-card-max-width, 100%));
+  margin: 0 auto 8px;
   display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; justify-content: flex-start;
   gap: 5px 6px; padding: 0; background: none; overflow: visible;
 }
