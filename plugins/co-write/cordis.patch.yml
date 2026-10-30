@@ -1,0 +1,3 @@
+- insert:
+    - id: co-write
+      name: '@hongxsen/dsh-co-write'

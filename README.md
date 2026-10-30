@@ -15,6 +15,7 @@ https://hongxsen.github.io/dsh_plugins/index.json
 | 插件 | 说明 | 版本 | 目录 |
 |---|---|---|---|
 | **壁纸** `@hongxsen/dsh-wallpaper` | 在 Web 界面背后铺一张原创渐变壁纸，界面变成磨砂玻璃让壁纸透出来；深色/浅色各一套 | 0.1.1 | [plugins/wallpaper](plugins/wallpaper) |
+| **人机双写** `@hongxsen/dsh-co-write` | 在对话或工作区文件里选中文字，就地评论；编号引用随下一条消息提交 | 0.1.0 | [plugins/co-write](plugins/co-write) |
 
 ![壁纸 · 深色](docs/wallpaper-dark.png)
 
@@ -49,6 +50,7 @@ docs/
   *.png                 README 与插件页用的截图
 plugins/
   wallpaper/            壁纸插件（独立 npm 包，有自己的 package.json）
+  co-write/             人机双写插件（独立 npm 包，有自己的 package.json）
 ```
 
 约定：
