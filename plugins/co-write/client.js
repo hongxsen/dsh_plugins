@@ -430,82 +430,89 @@ const SELECTION_CSS = `
 const BAR_CSS = `
 .cowrite-pending-row {
   box-sizing: border-box; width: calc(100% - 36px); margin: 0 auto 8px;
-  display: flex; align-items: center; gap: 6px;
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
-  padding: 0; background: none;
+  display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start;
+  gap: 5px 6px; padding: 0; background: none; overflow: visible;
 }
-.cowrite-pending-chip {
-  display: inline-flex; align-items: center; gap: 5px; flex: none; max-width: 230px; height: 26px;
-  padding: 0 9px 0 5px; border-radius: 999px;
+.cowrite-pending-item {
+  display: inline-flex; align-items: center; flex: none; max-width: 230px; height: 26px;
+  border-radius: 999px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
   background: var(--dsw-alias-bg-layer-1, #ffffff);
-  color: var(--dsw-alias-label-secondary, #5f6368);
   box-shadow: var(--dsw-elevation-soft, 0 3px 10px rgba(2, 8, 20, 0.06));
-  font: inherit; font-size: 11.5px; cursor: pointer; white-space: nowrap;
+  color: var(--dsw-alias-label-secondary, #5f6368);
+  font: inherit; font-size: 11.5px; white-space: nowrap;
 }
-.cowrite-pending-chip:hover {
-  background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05));
-  color: var(--dsw-alias-label-primary, #1f2328);
+.cowrite-pending-item:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); color: var(--dsw-alias-label-primary, #1f2328); }
+.cowrite-pending-open {
+  display: inline-flex; flex: 1; align-items: center; gap: 5px; min-width: 0; height: 100%; overflow: hidden;
+  padding: 0 2px 0 5px; border: 0; border-radius: 999px 0 0 999px; background: transparent;
+  color: inherit; font: inherit; cursor: pointer;
 }
 .cowrite-pending-num {
   display: grid; place-items: center; flex: none; width: 16px; height: 16px;
   border-radius: 50%; background: var(--dsw-alias-brand-primary, #4d6bfe);
   color: var(--dsw-alias-label-primary-inverted, #ffffff); font-size: 10px; font-weight: 600;
 }
-.cowrite-pending-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dsw-alias-label-tertiary, #8a8f98); }
-.cowrite-pending-more { border-style: dashed; color: var(--dsw-alias-label-tertiary, #8a8f98); }
+.cowrite-pending-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--dsw-alias-label-tertiary, #8a8f98); }
+.cowrite-pending-delete {
+  display: grid; place-items: center; flex: none; width: 18px; height: 18px; margin: 0 3px 0 0; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--dsw-alias-label-tertiary, #8a8f98);
+  font: inherit; font-size: 13px; line-height: 1; cursor: pointer;
+}
+.cowrite-pending-delete:hover { color: var(--dsw-alias-label-error, #c62828); background: var(--dsw-alias-interactive-bg-hover-danger, rgba(198, 40, 40, 0.1)); }
+.cowrite-pending-more {
+  display: inline-flex; align-items: center; flex: none; height: 26px; padding: 0 10px;
+  border: 1px dashed var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.18)); border-radius: 999px;
+  background: transparent; color: var(--dsw-alias-label-tertiary, #8a8f98);
+  font: inherit; font-size: 11px; cursor: pointer;
+}
+.cowrite-pending-more:hover { color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
 .cowrite-pending-clear {
-  flex: none; border: 0; border-radius: 5px; padding: 2px 5px; background: transparent;
+  flex: none; align-self: center; border: 0; border-radius: 5px; padding: 2px 5px; background: transparent;
   color: var(--dsw-alias-label-tertiary, #8a8f98); font: inherit; font-size: 11px; cursor: pointer;
 }
 .cowrite-pending-clear:hover { color: var(--dsw-alias-label-error, #c62828); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
-.cowrite-modal-root {
-  position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+.cowrite-popover {
+  box-sizing: border-box; position: fixed; z-index: 10000; display: flex; flex-direction: column; gap: 8px;
+  padding: 12px; border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
+  border-radius: 12px; background: var(--dsw-alias-bg-layer-1, #ffffff);
+  box-shadow: var(--dsw-elevation-prominent, 0 18px 48px rgba(2, 8, 20, 0.28));
+  color: var(--dsw-alias-label-primary, #1f2328); overflow: auto;
   font-family: var(--dsw-font-family, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
-  font-size: 12.5px; color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: 12.5px;
 }
-.cowrite-modal-backdrop { position: absolute; inset: 0; background: rgba(8, 12, 18, 0.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
-.cowrite-modal {
-  position: relative; display: flex; flex-direction: column; gap: 8px;
-  width: min(560px, calc(100vw - 24px)); max-height: min(80vh, 640px); padding: 14px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14)); border-radius: 16px;
-  background: var(--dsw-alias-bg-layer-1, #ffffff);
-  box-shadow: var(--dsw-elevation-prominent, 0 24px 64px rgba(2, 8, 20, 0.32));
+.cowrite-popover-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cowrite-popover-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 600; }
+.cowrite-popover-meta { flex: none; color: var(--dsw-alias-label-tertiary, #8a8f98); font-size: 10.5px; }
+.cowrite-popover-close {
+  margin-left: auto; flex: none; display: grid; place-items: center; width: 24px; height: 24px;
+  padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--dsw-alias-label-tertiary, #8a8f98);
+  font: inherit; font-size: 17px; line-height: 1; cursor: pointer;
 }
-.cowrite-modal-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.cowrite-modal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
-.cowrite-modal-meta { flex: none; color: var(--dsw-alias-label-tertiary, #8a8f98); font-size: 11px; }
-.cowrite-modal-close {
-  margin-left: auto; flex: none; display: grid; place-items: center; width: 26px; height: 26px;
-  padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--dsw-alias-label-tertiary, #8a8f98);
-  font: inherit; font-size: 18px; line-height: 1; cursor: pointer;
-}
-.cowrite-modal-close:hover { color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
-.cowrite-modal-quote {
-  max-height: 220px; overflow: auto; padding: 8px 10px; border-radius: 8px;
+.cowrite-popover-close:hover { color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
+.cowrite-popover-quote {
+  max-height: 180px; overflow: auto; padding: 7px 9px; border-radius: 8px;
   background: var(--dsw-alias-markdown-code-block, #f6f8fa); color: var(--dsw-alias-label-secondary, #4b5563);
   font-family: var(--dsw-font-markdown-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: 10.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.cowrite-modal-input {
-  width: 100%; min-height: 92px; max-height: 220px; resize: vertical; padding: 8px 9px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.16)); border-radius: 9px;
+.cowrite-popover-input {
+  width: 100%; min-height: 84px; max-height: 200px; resize: vertical; padding: 7px 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.16)); border-radius: 8px;
   background: var(--dsw-alias-bg-base, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
   font: inherit; line-height: 1.5; outline: none;
 }
-.cowrite-modal-input:focus { border-color: var(--dsw-alias-brand-primary, #4d6bfe); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary, #4d6bfe) 14%, transparent); }
-.cowrite-modal-error { color: var(--dsw-alias-label-error, #c62828); font-size: 11px; }
-.cowrite-modal-actions { display: flex; align-items: center; gap: 8px; }
-.cowrite-modal-spacer { flex: 1; }
-.cowrite-modal-btn {
-  min-height: 28px; padding: 0 11px; border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
-  border-radius: 8px; background: var(--dsw-alias-bg-layer-1, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
-  font: inherit; font-size: 12px; cursor: pointer;
+.cowrite-popover-input:focus { border-color: var(--dsw-alias-brand-primary, #4d6bfe); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary, #4d6bfe) 14%, transparent); }
+.cowrite-popover-error { color: var(--dsw-alias-label-error, #c62828); font-size: 10.5px; }
+.cowrite-popover-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.cowrite-popover-btn {
+  min-height: 27px; padding: 0 10px; border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.14));
+  border-radius: 7px; background: var(--dsw-alias-bg-layer-1, #ffffff); color: var(--dsw-alias-label-primary, #1f2328);
+  font: inherit; font-size: 11.5px; cursor: pointer;
 }
-.cowrite-modal-btn:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
-.cowrite-modal-btn.primary { background: var(--dsw-alias-brand-primary, #4d6bfe); border-color: transparent; color: var(--dsw-alias-label-primary-inverted, #ffffff); }
-.cowrite-modal-btn.danger { color: var(--dsw-alias-label-error, #c62828); }
-.cowrite-modal-btn:disabled { opacity: 0.45; cursor: default; }
+.cowrite-popover-btn:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.05)); }
+.cowrite-popover-btn.primary { background: var(--dsw-alias-brand-primary, #4d6bfe); border-color: transparent; color: var(--dsw-alias-label-primary-inverted, #ffffff); }
+.cowrite-popover-btn:disabled { opacity: 0.45; cursor: default; }
 .cowrite-refs { display: inline-flex; flex-direction: column; align-items: flex-start; max-width: 100%; margin-top: 4px; vertical-align: top; }
 .cowrite-refs-toggle {
   display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 8px;
@@ -1160,9 +1167,11 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
   function ReviewBar({ sessionId }) {
     const [comments, setComments] = React.useState(() => sessionId === undefined ? [] : store.get(sessionId))
     const [editingId, setEditingId] = React.useState(null)
+    const [anchor, setAnchor] = React.useState(null)
     const [showAll, setShowAll] = React.useState(false)
     const [draft, setDraft] = React.useState('')
     const [error, setError] = React.useState(null)
+    const popoverRef = React.useRef(null)
 
     React.useEffect(() => {
       if (sessionId === undefined) {
@@ -1174,11 +1183,7 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
     }, [sessionId])
 
     React.useEffect(() => {
-      if (editingId !== null && !comments.some(comment => comment.id === editingId)) {
-        setEditingId(null)
-        setDraft('')
-        setError(null)
-      }
+      if (editingId !== null && !comments.some(comment => comment.id === editingId)) close()
     }, [comments, editingId])
 
     React.useEffect(() => {
@@ -1187,12 +1192,19 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
         if (event.key !== 'Escape' || event.isComposing) return
         event.preventDefault()
         event.stopPropagation()
-        setEditingId(null)
-        setDraft('')
-        setError(null)
+        close()
+      }
+      const onPointerDown = event => {
+        const popover = popoverRef.current
+        if (popover !== null && event.target instanceof Node && popover.contains(event.target)) return
+        close()
       }
       document.addEventListener('keydown', onKeyDown, true)
-      return () => document.removeEventListener('keydown', onKeyDown, true)
+      document.addEventListener('pointerdown', onPointerDown, true)
+      return () => {
+        document.removeEventListener('keydown', onKeyDown, true)
+        document.removeEventListener('pointerdown', onPointerDown, true)
+      }
     }, [editingId])
 
     if (sessionId === undefined || !Array.isArray(comments) || comments.length === 0) return null
@@ -1200,17 +1212,20 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
     const visible = showAll || comments.length <= MAX_CHIPS ? comments : comments.slice(0, MAX_CHIPS)
     const hidden = comments.length - visible.length
 
-    const close = () => {
+    function close() {
       setEditingId(null)
+      setAnchor(null)
       setDraft('')
       setError(null)
     }
-    const open = comment => {
+    function open(comment, event) {
+      const rect = event.currentTarget.getBoundingClientRect()
+      setAnchor({ left: rect.left, top: rect.top })
       setEditingId(comment.id)
       setDraft(comment.comment)
       setError(null)
     }
-    const save = () => {
+    function save() {
       if (editing === undefined) return
       const outcome = store.update(sessionId, editing.id, draft)
       if (!outcome.ok) {
@@ -1219,30 +1234,37 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
       }
       close()
     }
-    const remove = () => {
-      if (editing === undefined) return
-      store.remove(sessionId, editing.id)
-      close()
+    function remove(commentId) {
+      store.remove(sessionId, commentId)
+      if (editingId === commentId) close()
     }
 
     const chips = visible.map(comment => {
       const number = comments.indexOf(comment) + 1
-      return React.createElement('button', {
-        type: 'button',
-        key: comment.id,
-        className: 'cowrite-pending-chip',
-        title: `${number}. ${comment.label} — ${comment.comment}`,
-        onClick: () => open(comment),
-      },
-      React.createElement('span', { className: 'cowrite-pending-num' }, String(number)),
-      React.createElement('span', { className: 'cowrite-pending-text' }, summarize(comment.content, 16)),
+      return React.createElement('span', { className: 'cowrite-pending-item', key: comment.id },
+        React.createElement('button', {
+          type: 'button',
+          className: 'cowrite-pending-open',
+          title: `${number}. ${comment.label} — ${comment.comment}`,
+          onClick: event => open(comment, event),
+        },
+        React.createElement('span', { className: 'cowrite-pending-num' }, String(number)),
+        React.createElement('span', { className: 'cowrite-pending-text' }, summarize(comment.content, 16)),
+        ),
+        React.createElement('button', {
+          type: 'button',
+          className: 'cowrite-pending-delete',
+          title: t.remove,
+          'aria-label': t.remove,
+          onClick: event => { event.stopPropagation(); remove(comment.id) },
+        }, '×'),
       )
     })
     if (hidden > 0) {
       chips.push(React.createElement('button', {
         type: 'button',
         key: 'more',
-        className: 'cowrite-pending-chip cowrite-pending-more',
+        className: 'cowrite-pending-more',
         onClick: () => setShowAll(true),
       }, interpolate(t.more, { count: hidden })))
     }
@@ -1250,71 +1272,69 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
       chips.push(React.createElement('button', {
         type: 'button',
         key: 'less',
-        className: 'cowrite-pending-chip cowrite-pending-more',
+        className: 'cowrite-pending-more',
         onClick: () => setShowAll(false),
       }, t.less))
     }
 
-    const modal = editing === undefined ? null : ReactDOM.createPortal(
-      React.createElement('div', { className: 'cowrite-modal-root' },
-        React.createElement('div', { className: 'cowrite-modal-backdrop', onClick: close }),
-        React.createElement('div', {
-          className: 'cowrite-modal',
-          role: 'dialog',
-          'aria-modal': 'true',
-          'aria-label': t.detailTitle,
+    const popoverWidth = Math.min(420, window.innerWidth - 16)
+    const popover = editing === undefined || anchor === null ? null : ReactDOM.createPortal(
+      React.createElement('div', {
+        className: 'cowrite-popover',
+        ref: popoverRef,
+        role: 'dialog',
+        'aria-label': t.detailTitle,
+        style: {
+          left: `${Math.round(clamp(anchor.left, 8, Math.max(8, window.innerWidth - popoverWidth - 8)))}px`,
+          bottom: `${Math.round(Math.max(8, window.innerHeight - anchor.top + 8))}px`,
+          width: `${popoverWidth}px`,
+          maxHeight: `${Math.round(Math.max(160, anchor.top - 16))}px`,
         },
-        React.createElement('div', { className: 'cowrite-modal-head' },
-          React.createElement('span', { className: 'cowrite-modal-title' }, `#${comments.indexOf(editing) + 1} · ${editing.label}`),
-          locationLine(editing, lang) === '' ? null : React.createElement('span', { className: 'cowrite-modal-meta' }, locationLine(editing, lang)),
-          React.createElement('button', {
-            type: 'button',
-            className: 'cowrite-modal-close',
-            title: t.detailCancel,
-            onClick: close,
-          }, '×'),
-        ),
-        React.createElement('div', { className: 'cowrite-modal-quote' }, editing.content),
-        React.createElement('textarea', {
-          className: 'cowrite-modal-input',
-          value: draft,
-          autoFocus: true,
-          placeholder: t.detailPlaceholder,
-          'aria-label': t.detailPlaceholder,
-          onChange: event => {
-            setDraft(event.target.value)
-            if (error !== null) setError(null)
-          },
-          onKeyDown: event => {
-            if (event.isComposing) return
-            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-              event.preventDefault()
-              event.stopPropagation()
-              save()
-            }
-          },
-        }),
-        error === null ? null : React.createElement('div', { className: 'cowrite-modal-error' }, error),
-        React.createElement('div', { className: 'cowrite-modal-actions' },
-          React.createElement('button', {
-            type: 'button',
-            className: 'cowrite-modal-btn danger',
-            onClick: remove,
-          }, t.detailDelete),
-          React.createElement('span', { className: 'cowrite-modal-spacer' }),
-          React.createElement('button', {
-            type: 'button',
-            className: 'cowrite-modal-btn',
-            onClick: close,
-          }, t.detailCancel),
-          React.createElement('button', {
-            type: 'button',
-            className: 'cowrite-modal-btn primary',
-            disabled: draft.trim() === '',
-            onClick: save,
-          }, t.detailSave),
-        ),
-        ),
+      },
+      React.createElement('div', { className: 'cowrite-popover-head' },
+        React.createElement('span', { className: 'cowrite-popover-title' }, `#${comments.indexOf(editing) + 1} · ${editing.label}`),
+        locationLine(editing, lang) === '' ? null : React.createElement('span', { className: 'cowrite-popover-meta' }, locationLine(editing, lang)),
+        React.createElement('button', {
+          type: 'button',
+          className: 'cowrite-popover-close',
+          title: t.detailCancel,
+          onClick: close,
+        }, '×'),
+      ),
+      React.createElement('div', { className: 'cowrite-popover-quote' }, editing.content),
+      React.createElement('textarea', {
+        className: 'cowrite-popover-input',
+        value: draft,
+        autoFocus: true,
+        placeholder: t.detailPlaceholder,
+        'aria-label': t.detailPlaceholder,
+        onChange: event => {
+          setDraft(event.target.value)
+          if (error !== null) setError(null)
+        },
+        onKeyDown: event => {
+          if (event.isComposing) return
+          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault()
+            event.stopPropagation()
+            save()
+          }
+        },
+      }),
+      error === null ? null : React.createElement('div', { className: 'cowrite-popover-error' }, error),
+      React.createElement('div', { className: 'cowrite-popover-actions' },
+        React.createElement('button', {
+          type: 'button',
+          className: 'cowrite-popover-btn',
+          onClick: close,
+        }, t.detailCancel),
+        React.createElement('button', {
+          type: 'button',
+          className: 'cowrite-popover-btn primary',
+          disabled: draft.trim() === '',
+          onClick: save,
+        }, t.detailSave),
+      ),
       ),
       document.body,
     )
@@ -1334,7 +1354,7 @@ function createReviewBar(React, ReactDOM, store, t, lang) {
         onClick: () => store.clear(sessionId),
       }, t.clear),
       ),
-      modal,
+      popover,
     )
   }
   ReviewBar.displayName = 'CoWriteReviewBar'
