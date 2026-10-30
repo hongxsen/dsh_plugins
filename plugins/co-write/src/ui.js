@@ -144,7 +144,7 @@ const SELECTION_CSS = `
 
 const BAR_CSS = `
 .cowrite-bar {
-  margin: 0 0 8px; padding: 8px 10px 6px;
+  box-sizing: border-box; width: calc(100% - 36px); margin: 0 auto 8px; padding: 8px 10px 6px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.12));
   border-radius: 13px;
   background: color-mix(in srgb, var(--dsw-alias-bg-layer-1, #ffffff) 92%, transparent);
@@ -225,7 +225,7 @@ const BAR_CSS = `
 .cowrite-refs-panel {
   margin-top: 6px; padding: 8px; border-radius: 10px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.12));
-  background: var(--dsw-alias-bg-base, #ffffff); max-height: 320px; overflow: auto;
+  background: var(--dsw-alias-bg-base, #ffffff); max-height: 260px; overflow: auto;
 }
 .cowrite-refs-section { padding: 6px 0; border-top: 1px solid var(--dsw-alias-border-l1, rgba(15, 23, 42, 0.08)); }
 .cowrite-refs-section:first-child { padding-top: 0; border-top: 0; }
@@ -459,8 +459,13 @@ function installSendHook(ctx, store, lang) {
     if (pending.length > 0) {
       const built = buildCommentMessage(pending, lang)
       if (built.error === null) {
-        nextText = nextText.trim() === '' ? built.text : `${nextText}\n\n${built.text}`
-        attached = true
+        // A second wrapper from a hot reload must not append the same section again.
+        if (hasRefsMarker(nextText)) {
+          attached = true
+        } else {
+          nextText = nextText.trim() === '' ? built.text : `${nextText}\n\n${built.text}`
+          attached = true
+        }
       }
     }
     const outcome = await original.call(this, session, nextText, attachmentIds, mode, signal, accept)
@@ -821,7 +826,7 @@ function createRefsText(React, t) {
     const data = node.data ?? {}
     const details = typeof data.details === 'string' ? data.details : ''
     const sections = React.useMemo(() => parseCommentDetails(details), [details])
-    const count = Number.isFinite(data.count) ? data.count : sections.length
+    const count = sections.length > 0 ? sections.length : Number.isFinite(data.count) ? data.count : 0
     const panel = open ? React.createElement('div', {
       className: 'cowrite-refs-panel',
       'data-text-interaction-exclude': '',

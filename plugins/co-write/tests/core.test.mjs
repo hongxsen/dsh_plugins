@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  MAX_COMMENT, MAX_EXCERPT, MAX_TOTAL, buildCommentMessage, clipText, findRefsMarker, formatComment,
+  MAX_COMMENT, MAX_EXCERPT, MAX_TOTAL, buildCommentMessage, clipText, findRefsMarker, formatComment, hasRefsMarker,
   normalizeComment, normalizeComments, parseCommentDetails, quoteLines, shortSourceLabel, sourceLabel,
   storageKey, summarize, totalSize,
 } from '../src/core.mjs'
@@ -103,6 +103,8 @@ test('findRefsMarker locates the sent marker', () => {
   assert.equal(marker?.count, 3)
   assert.equal(marker?.start, text.indexOf('[dsh'))
   assert.equal(findRefsMarker('no marker'), undefined)
+  assert.equal(hasRefsMarker('[dsh-co-write-refs count=1]'), true)
+  assert.equal(hasRefsMarker('ordinary text'), false)
 })
 
 test('parseCommentDetails recovers quote and comment sections', () => {
@@ -122,6 +124,7 @@ test('parseCommentDetails recovers quote and comment sections', () => {
 评论：改名`
   const sections = parseCommentDetails(details)
   assert.equal(sections.length, 2)
+  assert.equal(parseCommentDetails(`${details}\n\n${details}`).length, 2)
   assert.equal(sections[0].number, 1)
   assert.equal(sections[0].quote, 'line one\nline two')
   assert.equal(sections[0].comment, '改短一点')

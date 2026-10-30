@@ -108,6 +108,11 @@ function locationLine(comment, lang = 'zh') {
 /** Marker line prepended to every sent review message, consumed by the bubble renderer. */
 const REFS_MARKER = '[dsh-co-write-refs count='
 
+/** Whether a message already carries a review section. */
+function hasRefsMarker(text) {
+  return /\[dsh-co-write-refs count=\d+\]/u.test(cleanText(text))
+}
+
 /**
  * Find the review marker at or after one offset.
  * @param {string} text - complete original message.
@@ -132,11 +137,15 @@ function findRefsMarker(text, from = 0) {
  * @returns {readonly object[]} parsed sections; empty when the format is unrecognised.
  */
 function parseCommentDetails(details) {
+  // Repeated appends from an older build may contain the descriptive header
+  // again; it is not part of any section.
   const text = cleanText(details)
+    .replace(/^(?:以下是我对选中原文的评论.*|Here are my comments.*)$/gmu, '')
+    .trim()
   const heading = /^### (?:评论|Comment) (\d+) · (.+)$/gmu
   const matches = [...text.matchAll(heading)]
   if (matches.length === 0) return []
-  return matches.map((match, index) => {
+  const parsed = matches.map((match, index) => {
     const nextStart = index + 1 < matches.length ? matches[index + 1].index : text.length
     const section = text.slice(match.index + match[0].length, nextStart).trim()
     const sourceMatch = /(?:原文|Quoted text)[：:]\s*\n?/u.exec(section)
@@ -158,6 +167,13 @@ function parseCommentDetails(details) {
     }
     quote = quote.split('\n').map(line => line.replace(/^>\s?/u, '')).join('\n').trim()
     return { number: Number(match[1]), title: match[2].trim(), subtitle, quote, comment }
+  })
+  const seen = new Set()
+  return parsed.filter(section => {
+    const key = `${section.title}\n${section.quote}\n${section.comment}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 }
 
@@ -410,7 +426,7 @@ const SELECTION_CSS = `
 
 const BAR_CSS = `
 .cowrite-bar {
-  margin: 0 0 8px; padding: 8px 10px 6px;
+  box-sizing: border-box; width: calc(100% - 36px); margin: 0 auto 8px; padding: 8px 10px 6px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.12));
   border-radius: 13px;
   background: color-mix(in srgb, var(--dsw-alias-bg-layer-1, #ffffff) 92%, transparent);
@@ -491,7 +507,7 @@ const BAR_CSS = `
 .cowrite-refs-panel {
   margin-top: 6px; padding: 8px; border-radius: 10px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(15, 23, 42, 0.12));
-  background: var(--dsw-alias-bg-base, #ffffff); max-height: 320px; overflow: auto;
+  background: var(--dsw-alias-bg-base, #ffffff); max-height: 260px; overflow: auto;
 }
 .cowrite-refs-section { padding: 6px 0; border-top: 1px solid var(--dsw-alias-border-l1, rgba(15, 23, 42, 0.08)); }
 .cowrite-refs-section:first-child { padding-top: 0; border-top: 0; }
@@ -725,8 +741,13 @@ function installSendHook(ctx, store, lang) {
     if (pending.length > 0) {
       const built = buildCommentMessage(pending, lang)
       if (built.error === null) {
-        nextText = nextText.trim() === '' ? built.text : `${nextText}\n\n${built.text}`
-        attached = true
+        // A second wrapper from a hot reload must not append the same section again.
+        if (hasRefsMarker(nextText)) {
+          attached = true
+        } else {
+          nextText = nextText.trim() === '' ? built.text : `${nextText}\n\n${built.text}`
+          attached = true
+        }
       }
     }
     const outcome = await original.call(this, session, nextText, attachmentIds, mode, signal, accept)
@@ -1087,7 +1108,7 @@ function createRefsText(React, t) {
     const data = node.data ?? {}
     const details = typeof data.details === 'string' ? data.details : ''
     const sections = React.useMemo(() => parseCommentDetails(details), [details])
-    const count = Number.isFinite(data.count) ? data.count : sections.length
+    const count = sections.length > 0 ? sections.length : Number.isFinite(data.count) ? data.count : 0
     const panel = open ? React.createElement('div', {
       className: 'cowrite-refs-panel',
       'data-text-interaction-exclude': '',

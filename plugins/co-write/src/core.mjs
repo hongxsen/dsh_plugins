@@ -95,6 +95,11 @@ export function locationLine(comment, lang = 'zh') {
 /** Marker line prepended to every sent review message, consumed by the bubble renderer. */
 export const REFS_MARKER = '[dsh-co-write-refs count='
 
+/** Whether a message already carries a review section. */
+export function hasRefsMarker(text) {
+  return /\[dsh-co-write-refs count=\d+\]/u.test(cleanText(text))
+}
+
 /**
  * Find the review marker at or after one offset.
  * @param {string} text - complete original message.
@@ -119,11 +124,15 @@ export function findRefsMarker(text, from = 0) {
  * @returns {readonly object[]} parsed sections; empty when the format is unrecognised.
  */
 export function parseCommentDetails(details) {
+  // Repeated appends from an older build may contain the descriptive header
+  // again; it is not part of any section.
   const text = cleanText(details)
+    .replace(/^(?:以下是我对选中原文的评论.*|Here are my comments.*)$/gmu, '')
+    .trim()
   const heading = /^### (?:评论|Comment) (\d+) · (.+)$/gmu
   const matches = [...text.matchAll(heading)]
   if (matches.length === 0) return []
-  return matches.map((match, index) => {
+  const parsed = matches.map((match, index) => {
     const nextStart = index + 1 < matches.length ? matches[index + 1].index : text.length
     const section = text.slice(match.index + match[0].length, nextStart).trim()
     const sourceMatch = /(?:原文|Quoted text)[：:]\s*\n?/u.exec(section)
@@ -145,6 +154,13 @@ export function parseCommentDetails(details) {
     }
     quote = quote.split('\n').map(line => line.replace(/^>\s?/u, '')).join('\n').trim()
     return { number: Number(match[1]), title: match[2].trim(), subtitle, quote, comment }
+  })
+  const seen = new Set()
+  return parsed.filter(section => {
+    const key = `${section.title}\n${section.quote}\n${section.comment}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 }
 
