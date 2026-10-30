@@ -1,14 +1,16 @@
 {
   "name": "@hongxsen/dsh-wallpaper",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
-  "description": "Paints an original gradient wallpaper behind the DSH Web UI and frosts the app surfaces so it shows through.",
+  "description": "Paints one of several original wallpapers — or your own image — behind the DSH Web UI, and frosts the app surfaces so it shows through.",
   "keywords": [
     "dsh",
     "dsh-plugin",
     "deepseek-harness",
     "wallpaper",
-    "theme"
+    "theme",
+    "background",
+    "settings"
   ],
   "license": "MIT",
   "exports": {
@@ -23,10 +25,12 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
+    "art/*.svg",
     "README.md"
   ],
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "engines": {
     "dsh": ">=0.2.1-0 <0.3.0"
@@ -37,7 +41,11 @@
     },
     "client": {
       "platform": "web",
-      "immediately": true
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
     }
   },
   "repository": {
