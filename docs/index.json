@@ -45,12 +45,13 @@
       },
       "versions": [
         {
-          "version": "0.1.0",
-          "publishTimestamp": 1793379590,
+          "version": "0.1.1",
+          "publishTimestamp": 1793381314,
           "source": {
             "type": "git",
             "url": "https://github.com/hongxsen/dsh_plugins",
-            "commit": "09b22a8a72cca9b39b2efe918ebd4097b02a10d0"
+            "commit": "4fdda255581cf3b65304c8f44a5772cb58b65798",
+            "path": "plugins/wallpaper"
           },
           "engines": {
             "dsh": ">=0.2.1-0 <0.3.0"
