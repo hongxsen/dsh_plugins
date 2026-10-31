@@ -41,6 +41,12 @@ https://hongxsen.github.io/dsh_plugins/index.json
 ```sh
 dsh plugin --profile desktop add \
   "git+https://github.com/hongxsen/dsh_plugins.git#wallpaper-v0.2.0&path:/plugins/wallpaper"
+
+# 两个市场插件
+dsh plugin --profile desktop add \
+  "git+https://github.com/hongxsen/dsh_plugins.git#skills-market-v0.1.0&path:/plugins/skills-market"
+dsh plugin --profile desktop add \
+  "git+https://github.com/hongxsen/dsh_plugins.git#mcp-market-v0.1.0&path:/plugins/mcp-market"
 ```
 
 本地开发时直接指向目录：
