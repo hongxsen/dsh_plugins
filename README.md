@@ -18,6 +18,7 @@ https://hongxsen.github.io/dsh_plugins/index.json
 | **技能市场** `@hongxsen/dsh-skills-market` | 从 skills.sh 或自定义 JSON/skills.sh 市场源搜索技能，也可从本机目录/集合目录安装；预览全部文件后安装到 `~/.dsh/skills`，并管理 `~/.dsh` 与 `~/.agents` 的已安装技能 | 0.3.2 | [plugins/skills-market](plugins/skills-market) |
 | **MCP 市场** `@hongxsen/dsh-mcp-market` | 从官方 MCP Registry 或自定义 JSON/Registry 市场源搜索服务器，也可手动添加本地 stdio 服务器；按需填写密钥后写入当前配置，并管理启停 | 0.3.0 | [plugins/mcp-market](plugins/mcp-market) |
 | **人机双写** `@hongxsen/dsh-co-write` | 在对话或工作区文件里选中文字，就地评论；编号引用随下一条消息提交 | 0.1.0 | [plugins/co-write](plugins/co-write) |
+| **多平台 IM 机器人** `@hongxsen/dsh-im-bot` | 通过企业微信、QQ 官方机器人和飞书长连接与 DSH 交互；支持多连接、会话恢复、排队与进度反馈 | 0.1.0 | [plugins/im-bot](plugins/im-bot) |
 
 ![壁纸 · 深色](docs/wallpaper-dark.png)
 
@@ -76,6 +77,7 @@ plugins/
   skills-market/        技能市场：skills.sh 搜索、预览与安装
   mcp-market/           MCP 市场：官方 Registry 搜索与服务器管理
   co-write/             人机双写插件（独立 npm 包，有自己的 package.json）
+  im-bot/               多平台 IM 机器人：企微、QQ、飞书与多连接
 ```
 
 约定：

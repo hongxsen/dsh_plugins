@@ -1,0 +1,4 @@
+plugins:
+  - insert:
+      id: im-bot
+      name: '@hongxsen/dsh-im-bot'
