@@ -285,6 +285,22 @@ test('stop closes the socket and prevents further reconnects', async () => {
   assert.equal(client.status.state, 'stopped')
 })
 
+test('stop during the websocket handshake ignores a late open and awaits the loop', async () => {
+  const { client, sockets } = makeClientHarness()
+  client.start()
+  await waitFor(() => sockets.length === 1)
+  const socket = sockets[0]
+
+  const stopping = client.stop()
+  socket.open()
+  await stopping
+
+  assert.equal(socket.closed, true)
+  assert.equal(socket.frames('aibot_subscribe').length, 0)
+  assert.equal(client.connected, false)
+  assert.equal(client.status.state, 'stopped')
+})
+
 // ------------------------------------------------------- normalized adapter
 
 test('normalizeWeComMessage maps direct text to the shared message contract', () => {
@@ -593,6 +609,39 @@ test('NodeWebSocket surfaces rejected upgrades and sends no data afterwards', as
   assert.match(events[0], /error:WebSocket upgrade rejected \(HTTP 403\)/)
   assert.equal(events[1], 'close:1006')
   assert.throws(() => ws.send('x'), /not open/)
+})
+
+test('NodeWebSocket close during CONNECTING aborts and ignores a late upgrade', async (t) => {
+  let upgradedSocket
+  let releaseUpgrade
+  const server = http.createServer()
+  server.on('upgrade', (request, socket) => {
+    upgradedSocket = socket
+    socket.on('error', () => {}) // expected when the client aborts the handshake
+    releaseUpgrade = () => {
+      const accept = createHash('sha1').update(request.headers['sec-websocket-key'] + GUID).digest('base64')
+      if (!socket.destroyed) {
+        socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`)
+      }
+    }
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  t.after(() => {
+    upgradedSocket?.destroy()
+    server.close()
+  })
+
+  const ws = new NodeWebSocket(`ws://127.0.0.1:${server.address().port}`)
+  const events = []
+  ws.addEventListener('open', () => events.push('open'))
+  ws.addEventListener('close', (event) => events.push(`close:${event.code}`))
+  await waitFor(() => releaseUpgrade !== undefined)
+  ws.close()
+  releaseUpgrade()
+  await sleep(30)
+
+  assert.equal(ws.readyState, 3)
+  assert.deepEqual(events, ['close:1000'])
 })
 
 test('NodeWebSocket emits a server close once and preserves its code', async (t) => {

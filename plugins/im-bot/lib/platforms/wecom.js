@@ -27,13 +27,6 @@ export function generateReqId(prefix) {
   return `${prefix}_${Date.now()}_${randomBytes(4).toString('hex')}`
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms)
-    timer.unref?.()
-  })
-}
-
 function protocolConfig(config) {
   return {
     wsUrl: DEFAULT_WECOM_WS_URL,
@@ -68,6 +61,8 @@ export class WeComClient {
   #eventHandlers = new Set()
   #statusHandlers = new Set()
   #loopPromise
+  #reconnectTimer
+  #wakeReconnect
 
   constructor({ config, logger, webSocketFactory }) {
     this.#config = protocolConfig(config)
@@ -121,6 +116,7 @@ export class WeComClient {
     this.#authenticated = false
     this.#stopHeartbeat()
     this.#rejectPending('客户端已停止')
+    this.#cancelReconnect()
     try {
       this.#socket?.close()
     } catch {
@@ -128,8 +124,28 @@ export class WeComClient {
     }
     this.#socket = undefined
     this.#setState('stopped', '')
-    // Do not hold plugin disposal open for an exponential-backoff sleep.
-    void this.#loopPromise?.catch(() => {})
+    // A stopped client must not leave an authentication or reconnect loop alive.
+    await this.#loopPromise?.catch(() => {})
+  }
+
+  #cancelReconnect() {
+    clearTimeout(this.#reconnectTimer)
+    this.#reconnectTimer = undefined
+    const wake = this.#wakeReconnect
+    this.#wakeReconnect = undefined
+    wake?.()
+  }
+
+  #waitReconnect(ms) {
+    return new Promise((resolve) => {
+      this.#wakeReconnect = resolve
+      this.#reconnectTimer = setTimeout(() => {
+        this.#reconnectTimer = undefined
+        this.#wakeReconnect = undefined
+        resolve()
+      }, ms)
+      this.#reconnectTimer.unref?.()
+    })
   }
 
   async replyStream(reqId, streamId, content, finish) {
@@ -170,7 +186,7 @@ export class WeComClient {
       this.#reconnects += 1
       this.#logger.info?.(`[wecom] ${Math.round(delay / 1000)}s 后重连（第 ${this.#reconnects} 次）`)
       this.#setState('reconnecting')
-      await sleep(delay)
+      await this.#waitReconnect(delay)
       delay = Math.min(delay * 2, this.#config.reconnectMaxMs)
     }
     this.#setState('stopped', this.#permanentStop ? this.#detail : '')
@@ -182,7 +198,7 @@ export class WeComClient {
       const settle = () => {
         if (settled) return
         settled = true
-        this.#socket = undefined
+        if (this.#socket === socket) this.#socket = undefined
         this.#authenticated = false
         this.#stopHeartbeat()
         this.#rejectPending('连接已断开')
@@ -200,12 +216,20 @@ export class WeComClient {
       this.#socket = socket
 
       socket.addEventListener('open', () => {
+        if (!this.#running || this.#permanentStop || this.#socket !== socket) {
+          try {
+            socket.close()
+          } catch {
+            /* already closed */
+          }
+          return
+        }
         this.#authenticate(socket).catch((error) => {
           this.#logger.error?.(`[wecom] 认证流程异常：${error?.message ?? error}`)
         })
       })
       socket.addEventListener('message', (event) => {
-        this.#onData(event?.data)
+        if (this.#running && this.#socket === socket) this.#onData(event?.data)
       })
       socket.addEventListener('error', (event) => {
         const detail = event?.error?.message ?? event?.message ?? 'WebSocket 错误'
@@ -223,6 +247,7 @@ export class WeComClient {
   }
 
   async #authenticate(socket) {
+    if (!this.#running || this.#permanentStop || this.#socket !== socket) return
     this.#setState('authenticating')
     const reqId = generateReqId(WS_CMD.SUBSCRIBE)
     const ack = await this.#sendAndWait(reqId, {
@@ -231,6 +256,7 @@ export class WeComClient {
       body: { bot_id: this.#config.botId, secret: this.#config.secret },
     }, this.#config.requestTimeoutMs)
 
+    if (!this.#running || this.#permanentStop || this.#socket !== socket) return
     // A disconnect rejects pending requests; it is retryable, not bad auth.
     if (ack?.error !== undefined && ack?.timeout !== true) return
     if (ack?.timeout === true) {

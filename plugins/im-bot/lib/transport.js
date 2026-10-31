@@ -68,7 +68,22 @@ export class NodeWebSocket {
 
   close(code = 1000, reason = '') {
     if (this.#readyState === 3) return
+    const connecting = this.#readyState === 0
     this.#readyState = 2
+    this.#closeCode = code
+    this.#closeReason = String(reason)
+    if (connecting) {
+      // Aborting only the HTTP request is not enough: an already queued upgrade
+      // can arrive afterwards. The upgrade handler also checks readyState.
+      try {
+        this.#request?.destroy()
+        this.#socket?.destroy()
+      } catch {
+        /* already gone */
+      }
+      this.#emitClose()
+      return
+    }
     const text = Buffer.from(String(reason), 'utf8')
     const payload = Buffer.alloc(2 + text.length)
     payload.writeUInt16BE(code, 0)
@@ -114,6 +129,11 @@ export class NodeWebSocket {
     })
 
     request.on('upgrade', (response, socket, head) => {
+      if (this.#readyState !== 0) {
+        socket.destroy()
+        this.#emitClose()
+        return
+      }
       const expected = createHash('sha1').update(key + GUID).digest('base64')
       if (response.statusCode !== 101 || response.headers['sec-websocket-accept'] !== expected) {
         socket.destroy()

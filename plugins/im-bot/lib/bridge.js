@@ -268,7 +268,8 @@ export class ConversationBridge {
   }
 
   async #drain(state) {
-    while (state.queue.length > 0) {
+    try {
+      while (state.queue.length > 0) {
       const item = state.queue.shift()
       state.current = item
       try {
@@ -320,17 +321,24 @@ export class ConversationBridge {
       } catch (error) {
         this.#logger.error?.(`[im-bot] 任务执行失败：${error?.message ?? error}`)
         if (item.epoch === state.epoch) {
-          const parts = splitText(`❌ 执行失败：${error?.message ?? error}`, this.#config.maxReplyChars)
-          await item.delivery.final(parts[0])
-          for (const part of parts.slice(1)) await item.delivery.notice(part)
+          try {
+            const parts = splitText(`❌ 执行失败：${error?.message ?? error}`, this.#config.maxReplyChars)
+            await item.delivery.final(parts[0])
+            for (const part of parts.slice(1)) await item.delivery.notice(part)
+          } catch (deliveryError) {
+            // A broken platform delivery must not strand the remaining queue.
+            this.#logger.warn?.(`[im-bot] 失败通知投递失败：${deliveryError?.message ?? deliveryError}`)
+          }
         }
       } finally {
         await this.#dispose(item.delivery)
         if (state.current === item) state.current = undefined
       }
+      }
+    } finally {
+      state.running = false
+      state.current = undefined
     }
-    state.running = false
-    state.current = undefined
   }
 
   async #runCommand(command, message, state, delivery) {

@@ -313,6 +313,32 @@ test('one chat is serial while different chats run in parallel', async (t) => {
   assert.deepEqual([...parallel.registry.live.values()].map((agent) => agent.inbox.length), [1, 1])
 })
 
+test('failed error delivery does not strand queued work', async (t) => {
+  const harness = await makeBridge({}, { agentOptions: { manual: true } })
+  t.after(() => harness.cleanup())
+  const create = harness.registry.api.create
+  harness.registry.api.create = async (options) => {
+    const handle = await create(options)
+    const followup = handle.agent.followup.bind(handle.agent)
+    handle.agent.followup = (message) => {
+      if (handle.agent.inbox.length === 0) {
+        handle.agent.inbox.push(message)
+        throw new Error('agent failed')
+      }
+      followup(message)
+    }
+    return handle
+  }
+
+  harness.send({ text: '失败任务' })
+  harness.send({ text: '后续任务' })
+  harness.deliveries[0].final = async () => { throw new Error('platform send failed') }
+  await waitFor(() => harness.agent()?.inbox.length === 2)
+  harness.agent().complete('后续完成')
+  await waitFor(() => harness.deliveries[1]?.finals().length === 1)
+  assert.equal(harness.deliveries[1].finals()[0].text, '后续完成')
+})
+
 test('connection id is part of the conversation identity even for the same native chat id', async (t) => {
   const first = await makeBridge({ id: 'conn-a' })
   const second = await makeBridge({ id: 'conn-b' })
