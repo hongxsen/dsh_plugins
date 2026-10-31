@@ -103,6 +103,7 @@ QQ 被动回复受平台限制：群聊通常为 5 分钟、最多 5 条；C2C �
 | `maxStreamUpdates` | `80` | 单轮进度上限；平台可能采用更低实际发送量 |
 | `pollIntervalMs` | `250` | 读取 Session 事件的间隔 |
 | `turnTimeoutMs` | `600000` | 单轮超时 |
+| `requestTimeoutMs` | `10000` | HTTP 请求/响应读取及 QQ WebSocket 协商超时 |
 | `maxReplyChars` | `3000` | 保守分片长度 |
 | `maxQueue` | `20` | 每个会话排队上限 |
 | `ackText` | `收到，开始处理…` | 接单确认 |
@@ -113,7 +114,7 @@ QQ 被动回复受平台限制：群聊通常为 5 分钟、最多 5 条；C2C �
 | `dshHome` | `$DSH_HOME` 或 `~/.dsh` | 默认状态目录的根路径 |
 | `debug` | `false` | 调试日志；仍不会输出凭据 |
 
-平台专属字段包括企微 `wsUrl`、心跳/回执/重连参数，QQ `sandbox`、API/gateway 覆盖与重连参数，飞书 `domain`（默认飞书，可选 Lark）。生产环境不要覆盖官方 API 地址，除非用于隔离测试。
+平台专属字段包括企微 `wsUrl`、心跳/回执/重连参数，QQ `sandbox`、API/gateway 覆盖与重连参数，飞书 `domain`（默认飞书，可选 Lark）。QQ 会跟踪 heartbeat ACK，并在首次发现失败或 WebSocket 未完成 Hello/READY 协商时按退避策略重连。生产环境不要覆盖官方 API 地址，除非用于隔离测试。
 
 ## 使用
 

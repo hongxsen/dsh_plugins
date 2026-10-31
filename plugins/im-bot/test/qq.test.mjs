@@ -368,6 +368,119 @@ test('heartbeat uses latest seq and reconnect resumes with session and seq', asy
   await h.adapter.stop();
 });
 
+test('HTTP requests time out, abort their signal, and reject without leaking credentials', async () => {
+  const timers = new FakeTimers();
+  const pending = deferred();
+  let requestSignal;
+  const h = harness({
+    timers,
+    config: { c2cStream: false, requestTimeoutMs: 25 },
+    fetchHandler: (call) => {
+      if (new URL(call.url).pathname.endsWith('/messages')) {
+        requestSignal = call.init.signal;
+        return pending.promise;
+      }
+      return undefined;
+    },
+  });
+  const delivery = h.adapter.createDelivery(directMessage());
+  const result = delivery.notice('timeout');
+  await flush();
+  assert.equal(requestSignal.aborted, false);
+  await timers.advance(25);
+  await assert.rejects(result, (error) => {
+    assert.equal(error.code, 'ETIMEDOUT');
+    assert.match(error.message, /timed out/);
+    assert.doesNotMatch(error.message, /super-secret|token-/);
+    return true;
+  });
+  assert.equal(requestSignal.aborted, true);
+  await h.adapter.stop();
+});
+
+test('stop aborts an in-flight response body read and releases delivery disposal', async () => {
+  const body = deferred();
+  let requestSignal;
+  const h = harness({
+    config: { c2cStream: false },
+    fetchHandler: (call) => {
+      if (new URL(call.url).pathname.endsWith('/messages')) {
+        requestSignal = call.init.signal;
+        return { ...response({}), text: () => body.promise };
+      }
+      return undefined;
+    },
+  });
+  const delivery = h.adapter.createDelivery(directMessage());
+  const outcome = delivery.notice('blocked').then(() => null, (error) => error);
+  await flush();
+  assert.equal(requestSignal.aborted, false);
+  await h.adapter.stop();
+  const error = await outcome;
+  assert.match(error.message, /stopped|aborted/i);
+  assert.equal(requestSignal.aborted, true);
+  assert.equal(h.timers.tasks.size, 0);
+});
+
+test('heartbeat ACKs keep a socket alive and a missing ACK forces reconnect', async () => {
+  const h = harness({ config: { reconnectInitialMs: 10 } });
+  const first = await start(h);
+  hello(first, 1000);
+  ready(first);
+  await h.timers.advance(1000);
+  assert.equal(first.sent.filter((frame) => frame.op === 1).length, 1);
+  first.receive({ op: 11 });
+  await h.timers.advance(1000);
+  assert.equal(h.sockets.length, 1);
+  assert.equal(first.sent.filter((frame) => frame.op === 1).length, 2);
+  await h.timers.advance(1000);
+  assert.equal(first.closeCalls.at(-1).code, 1000);
+  await h.timers.advance(10);
+  assert.equal(h.sockets.length, 2);
+  await h.adapter.stop();
+});
+
+test('an OPEN socket without Hello or READY is recycled after negotiation timeout', async () => {
+  const h = harness({ config: { requestTimeoutMs: 50, reconnectInitialMs: 10 } });
+  const first = await start(h);
+  await h.timers.advance(50);
+  assert.equal(first.closeCalls.at(-1).code, 1000);
+  await h.timers.advance(10);
+  assert.equal(h.sockets.length, 2);
+  const second = h.sockets[1];
+  second.open();
+  hello(second, 1000);
+  // Hello alone is not readiness: the negotiation deadline remains active.
+  await h.timers.advance(50);
+  assert.equal(second.closeCalls.at(-1).code, 1000);
+  await h.timers.advance(20);
+  assert.equal(h.sockets.length, 3);
+  await h.adapter.stop();
+});
+
+test('initial gateway failure schedules reconnect and can recover without another start', async () => {
+  let gatewayCalls = 0;
+  const h = harness({
+    fetchHandler: (call) => {
+      if (new URL(call.url).pathname === '/gateway' && gatewayCalls++ === 0) {
+        return response({ err_code: 50001 }, 500);
+      }
+      return undefined;
+    },
+  });
+  await h.adapter.start(h.callbacks);
+  assert.equal(h.sockets.length, 0);
+  assert.equal(h.adapter.getStatus().state, 'reconnecting');
+  await h.timers.advance(1000);
+  assert.equal(h.sockets.length, 1);
+  const socket = h.sockets[0];
+  socket.open();
+  hello(socket);
+  ready(socket);
+  assert.equal(h.adapter.getStatus().state, 'online');
+  await h.adapter.stop();
+});
+
 test('server heartbeat request is acknowledged immediately', async () => {
   const h = harness();
   const socket = await start(h);

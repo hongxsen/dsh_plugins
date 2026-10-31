@@ -11,6 +11,7 @@ const DEFAULT_GROUP_REPLY_LIMIT = 5;
 const PASSIVE_REPLY_WINDOW_MS = 5 * 60_000;
 const DEFAULT_RECONNECT_BASE_MS = 1_000;
 const DEFAULT_RECONNECT_MAX_MS = 60_000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
 function requiredString(value, name) {
   if (typeof value !== 'string' || !value.trim()) {
@@ -56,6 +57,9 @@ export function createQQAdapter(config = {}, options = {}) {
   const reconnectMaxMs = Number(config.reconnectMaxMs) > 0
     ? Number(config.reconnectMaxMs)
     : DEFAULT_RECONNECT_MAX_MS;
+  const requestTimeoutMs = Number(config.requestTimeoutMs) > 0
+    ? Number(config.requestTimeoutMs)
+    : DEFAULT_REQUEST_TIMEOUT_MS;
   const fetchImpl = options.fetch || globalThis.fetch;
   const WebSocketImpl = options.WebSocket || WebSocket;
   const now = options.now || Date.now;
@@ -76,8 +80,11 @@ export function createQQAdapter(config = {}, options = {}) {
   let socket = null;
   let connectionGeneration = 0;
   let heartbeatTimer = null;
+  let heartbeatAwaitingAck = false;
+  let negotiationTimer = null;
   let reconnectTimer = null;
   let reconnectAttempts = 0;
+  const activeRequests = new Set();
   let status = { state: 'idle' };
   let heartbeatInterval = 45_000;
   let sessionId = null;
@@ -115,36 +122,82 @@ export function createQQAdapter(config = {}, options = {}) {
     return accessToken;
   }
 
+  /**
+   * Run one HTTP request with a timeout covering both fetch and body reading.
+   * The explicit abort race is intentional: injected/fetch-compatible clients
+   * are not required to honor AbortSignal, and stop() must still unblock them.
+   */
+  function request(url, init = {}) {
+    if (stopped) return Promise.reject(new Error('QQ adapter is stopped'));
+    if (typeof fetchImpl !== 'function') return Promise.reject(new Error('QQ adapter requires fetch'));
+
+    const controller = new AbortController();
+    const record = { controller, done: null };
+    activeRequests.add(record);
+    let timeoutId = null;
+    let rejectAbort;
+    const onAbort = () => {
+      const reason = controller.signal.reason;
+      rejectAbort(reason instanceof Error ? reason : new Error('QQ request aborted'));
+    };
+    const abortPromise = new Promise((_, reject) => {
+      rejectAbort = reject;
+      controller.signal.addEventListener('abort', onAbort, { once: true });
+    });
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimer(() => {
+        const error = new Error(`QQ request timed out after ${requestTimeoutMs}ms`);
+        error.code = 'ETIMEDOUT';
+        controller.abort(error);
+        reject(error);
+      }, requestTimeoutMs);
+      timeoutId?.unref?.();
+    });
+
+    record.done = (async () => {
+      try {
+        const operation = (async () => {
+          const response = await fetchImpl(url, { ...init, signal: controller.signal });
+          const text = await response.text();
+          return { response, text };
+        })();
+        return await Promise.race([operation, abortPromise, timeoutPromise]);
+      } finally {
+        if (timeoutId !== null) clearTimer(timeoutId);
+        controller.signal.removeEventListener('abort', onAbort);
+        activeRequests.delete(record);
+      }
+    })();
+    return record.done;
+  }
+
   async function fetchToken() {
-    if (typeof fetchImpl !== 'function') throw new Error('QQ adapter requires fetch');
-    let response;
     try {
-      response = await fetchImpl(tokenUrl, {
+      const { response, text } = await request(tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appId, clientSecret: appSecret }),
       });
+      const payload = parsePayload(text);
+      if (!response.ok) {
+        throw errorWithStatus(
+          response.status,
+          payload.err_code ?? payload.code,
+          response.headers?.get?.('x-tps-trace-id'),
+          'QQ AppAccessToken request failed',
+        );
+      }
+      if (typeof payload.access_token !== 'string' || !payload.access_token) {
+        throw new Error('QQ AppAccessToken response did not contain access_token');
+      }
+      const lifetime = Number(payload.expires_in);
+      const lifetimeSeconds = Number.isFinite(lifetime) && lifetime > 0 ? lifetime : 7200;
+      accessToken = payload.access_token;
+      tokenExpiresAt = now() + lifetimeSeconds * 1000;
+      return accessToken;
     } catch (error) {
       throw safeError(error, 'QQ AppAccessToken request failed');
     }
-    const text = await response.text();
-    const payload = parsePayload(text);
-    if (!response.ok) {
-      throw safeError(errorWithStatus(
-        response.status,
-        payload.err_code ?? payload.code,
-        response.headers?.get?.('x-tps-trace-id'),
-        'QQ AppAccessToken request failed',
-      ));
-    }
-    if (typeof payload.access_token !== 'string' || !payload.access_token) {
-      throw new Error('QQ AppAccessToken response did not contain access_token');
-    }
-    const lifetime = Number(payload.expires_in);
-    const lifetimeSeconds = Number.isFinite(lifetime) && lifetime > 0 ? lifetime : 7200;
-    accessToken = payload.access_token;
-    tokenExpiresAt = now() + lifetimeSeconds * 1000;
-    return accessToken;
   }
 
   // Deliberately non-async: a cached token is returned synchronously so a
@@ -165,14 +218,12 @@ export function createQQAdapter(config = {}, options = {}) {
   }
 
   async function apiRequest(path, { method = 'POST', body, retry401 = true } = {}) {
-    if (typeof fetchImpl !== 'function') throw new Error('QQ adapter requires fetch');
     let token = await resolveToken();
 
     for (let attempt = 0; attempt < 2; attempt++) {
       const url = /^https?:\/\//.test(path) ? path : `${apiBase}${path}`;
-      let response;
       try {
-        response = await fetchImpl(url, {
+        const { response, text } = await request(url, {
           method,
           headers: {
             Authorization: `QQBot ${token}`,
@@ -180,28 +231,27 @@ export function createQQAdapter(config = {}, options = {}) {
           },
           ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         });
+        const payload = parsePayload(text);
+        if (response.status === 401 && retry401 && attempt === 0) {
+          // Another concurrent request may already have refreshed this token.
+          if (accessToken === token) {
+            accessToken = null;
+            tokenExpiresAt = 0;
+          }
+          token = await resolveToken();
+          continue;
+        }
+        if (!response.ok) {
+          throw errorWithStatus(
+            response.status,
+            payload.err_code ?? payload.code,
+            response.headers?.get?.('x-tps-trace-id'),
+          );
+        }
+        return payload;
       } catch (error) {
         throw safeError(error, 'QQ API network request failed');
       }
-      const text = await response.text();
-      const payload = parsePayload(text);
-      if (response.status === 401 && retry401 && attempt === 0) {
-        // Another concurrent request may already have refreshed this token.
-        if (accessToken === token) {
-          accessToken = null;
-          tokenExpiresAt = 0;
-        }
-        token = await resolveToken();
-        continue;
-      }
-      if (!response.ok) {
-        throw safeError(errorWithStatus(
-          response.status,
-          payload.err_code ?? payload.code,
-          response.headers?.get?.('x-tps-trace-id'),
-        ));
-      }
-      return payload;
     }
     throw new Error('QQ API request failed after authentication retry');
   }
@@ -209,11 +259,30 @@ export function createQQAdapter(config = {}, options = {}) {
   function clearHeartbeat() {
     if (heartbeatTimer !== null) clearTimer(heartbeatTimer);
     heartbeatTimer = null;
+    heartbeatAwaitingAck = false;
   }
 
   function clearReconnect() {
     if (reconnectTimer !== null) clearTimer(reconnectTimer);
     reconnectTimer = null;
+  }
+
+  function clearNegotiation() {
+    if (negotiationTimer !== null) clearTimer(negotiationTimer);
+    negotiationTimer = null;
+  }
+
+  function scheduleNegotiation(target, generation) {
+    clearNegotiation();
+    negotiationTimer = setTimer(() => {
+      negotiationTimer = null;
+      if (stopped || generation !== connectionGeneration || socket !== target) return;
+      // Hello and READY/RESUMED are both required before this connection can
+      // receive messages. A socket that never completes either stage must not
+      // remain silently OPEN forever.
+      reconnectFrom(target);
+    }, requestTimeoutMs);
+    negotiationTimer?.unref?.();
   }
 
   function sendFrame(target, frame) {
@@ -223,13 +292,19 @@ export function createQQAdapter(config = {}, options = {}) {
   }
 
   function sendHeartbeat(target) {
-    sendFrame(target, { op: 1, d: lastSeq });
+    if (sendFrame(target, { op: 1, d: lastSeq })) heartbeatAwaitingAck = true;
   }
 
   function scheduleHeartbeat(target, generation) {
     clearHeartbeat();
     const beat = () => {
       if (stopped || generation !== connectionGeneration || socket !== target) return;
+      if (heartbeatAwaitingAck) {
+        // An OPEN socket can still be half-open at the gateway. Do not keep
+        // sending into it forever when the previous heartbeat was not ACKed.
+        reconnectFrom(target);
+        return;
+      }
       sendHeartbeat(target);
       heartbeatTimer = setTimer(beat, heartbeatInterval);
     };
@@ -255,6 +330,7 @@ export function createQQAdapter(config = {}, options = {}) {
     socket = null;
     connectionGeneration++;
     clearHeartbeat();
+    clearNegotiation();
   }
 
   function reconnectFrom(target, { resumable = true } = {}) {
@@ -354,6 +430,7 @@ export function createQQAdapter(config = {}, options = {}) {
     switch (frame.op) {
       case 0: {
         if (frame.t === 'READY') {
+          clearNegotiation();
           sessionId = frame.d?.session_id || null;
           reconnectAttempts = 0;
           status = { state: 'online', sessionId, resumed: false };
@@ -361,6 +438,7 @@ export function createQQAdapter(config = {}, options = {}) {
           return;
         }
         if (frame.t === 'RESUMED') {
+          clearNegotiation();
           reconnectAttempts = 0;
           status = { state: 'online', sessionId, resumed: true };
           handlers.onReady?.({ ...status });
@@ -389,6 +467,7 @@ export function createQQAdapter(config = {}, options = {}) {
         sendSessionHandshake(target, generation);
         return;
       case 11:
+        heartbeatAwaitingAck = false;
         return;
       default:
         return;
@@ -409,6 +488,7 @@ export function createQQAdapter(config = {}, options = {}) {
     const target = new WebSocketImpl(gatewayUrl);
     const generation = ++connectionGeneration;
     socket = target;
+    scheduleNegotiation(target, generation);
 
     target.onmessage = (event) => handleFrame(target, generation, event);
     target.onclose = (event) => {
@@ -440,16 +520,24 @@ export function createQQAdapter(config = {}, options = {}) {
     handlers = callbacks;
     started = true;
     stopped = false;
-    startPromise = openSocket();
+    startPromise = openSocket().catch((error) => {
+      if (stopped) return;
+      reportError(error);
+      // Initial discovery/handshake failures use the same recovery path as a
+      // later socket failure; the runtime must not need to re-call start().
+      scheduleReconnect();
+    });
     return startPromise;
   }
 
   async function stop() {
+    const pendingStart = startPromise;
     stopped = true;
     started = false;
     startPromise = null;
     status = { state: 'stopped' };
     clearHeartbeat();
+    clearNegotiation();
     clearReconnect();
     const target = socket;
     if (target) {
@@ -460,7 +548,18 @@ export function createQQAdapter(config = {}, options = {}) {
         // Already closed.
       }
     }
-    for (const delivery of [...deliveries]) await delivery.dispose();
+
+    const pendingRequests = [...activeRequests].map((record) => record.done);
+    const stopError = new Error('QQ adapter stopped');
+    for (const { controller } of activeRequests) controller.abort(stopError);
+    const pendingDeliveries = [...deliveries].map((delivery) => delivery.dispose());
+    // A stopped adapter is a cleanup boundary, not a reason to surface a
+    // second network error. Every in-flight operation has been aborted above.
+    await Promise.allSettled([
+      ...pendingRequests,
+      ...pendingDeliveries,
+      ...(pendingStart ? [pendingStart] : []),
+    ]);
   }
 
   function createDelivery(message) {
