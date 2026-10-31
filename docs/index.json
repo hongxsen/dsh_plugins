@@ -158,11 +158,11 @@
       "versions": [
         {
           "version": "0.1.0",
-          "publishTimestamp": 1793419605,
+          "publishTimestamp": 1793420093,
           "source": {
             "type": "git",
             "url": "https://github.com/hongxsen/dsh_plugins",
-            "commit": "9b54cdb",
+            "commit": "9b54cdb16acbf40976a6f354ae65d204d23ddbf4",
             "path": "plugins/skills-market"
           },
           "engines": {
@@ -200,11 +200,11 @@
       "versions": [
         {
           "version": "0.1.0",
-          "publishTimestamp": 1793419605,
+          "publishTimestamp": 1793420093,
           "source": {
             "type": "git",
             "url": "https://github.com/hongxsen/dsh_plugins",
-            "commit": "9b54cdb",
+            "commit": "9b54cdb16acbf40976a6f354ae65d204d23ddbf4",
             "path": "plugins/mcp-market"
           },
           "engines": {
