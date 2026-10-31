@@ -1,11 +1,12 @@
 /**
  * Local skill installation.
  *
- * A user can point the market at a directory that contains a `SKILL.md`, or
- * at a single `SKILL.md` file. The local tree is read without following any
- * symlink, capped by the same limits as a remote install, content-scanned,
- * and then staged exactly like a remote preview so install/remove keep one
- * audited path.
+ * A user can point the market at a directory that contains a `SKILL.md`, at a
+ * single `SKILL.md` file, or at a collection of direct child skills. Collections
+ * return a lightweight picker first. A selected local tree is read without
+ * following any symlink, capped by the same limits as a remote install,
+ * content-scanned, and staged exactly like a remote preview so install/remove
+ * keep one audited path.
  */
 import { randomUUID } from 'node:crypto'
 import { lstat, readFile, readdir, realpath, stat } from 'node:fs/promises'
@@ -29,7 +30,8 @@ import { skillExists } from './installed.js'
  * @param options.dshHome - DSH home.
  * @param options.inputPath - absolute path, `~/...` path, directory, or SKILL.md.
  * @param options.now - clock.
- * @returns the preview object, plus `kind: 'local'` and `localPath`.
+ * @returns a local preview with `kind: 'local'`/`localPath`, or a collection
+ *   picker with `kind: 'local-collection'` and direct child `skills`.
  */
 export async function previewLocalSkill({ dshHome, inputPath, now = Date.now() }) {
   if (typeof inputPath !== 'string' || inputPath.trim() === '') {
@@ -65,8 +67,15 @@ export async function previewLocalSkill({ dshHome, inputPath, now = Date.now() }
     files = [{ path: 'SKILL.md', buffer }]
     displaySource = displayPath(sourcePath)
   } else if (rootInfo.isDirectory()) {
-    files = await readLocalTree(sourcePath)
     displaySource = displayPath(sourcePath)
+    const rootManifest = await lstatOrNull(join(sourcePath, 'SKILL.md'))
+    if (rootManifest === null) {
+      // A directory such as ~/.claude/skills is a collection, not one giant
+      // skill. Enumerate only its direct children; never walk the whole tree
+      // just to discover that there is no root SKILL.md.
+      return readLocalCollection(sourcePath, displaySource)
+    }
+    files = await readLocalTree(sourcePath)
   } else {
     throw new MarketError('skills/invalid-skill', 'The local skill path must be a directory or a SKILL.md file')
   }
@@ -123,6 +132,78 @@ export async function previewLocalSkill({ dshHome, inputPath, now = Date.now() }
     warningTotal,
     existing,
     target: displayPath(join(skillsRootOf(dshHome), manifest.name)),
+  }
+}
+
+/** `lstat` that maps an absent candidate to `null`. */
+async function lstatOrNull(path) {
+  try {
+    return await lstat(path)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * List direct child skills in a collection directory without staging anything.
+ * Invalid or unsupported children are ignored; selecting a valid child runs
+ * the normal single-skill preview and all of its safety checks.
+ */
+async function readLocalCollection(root, displaySource) {
+  const entries = (await readdir(root, { withFileTypes: true }))
+    .filter((entry) => !entry.name.startsWith('.'))
+    .sort((left, right) => left.name.localeCompare(right.name))
+  const skills = []
+  for (const entry of entries) {
+    const full = join(root, entry.name)
+    const info = await lstatOrNull(full)
+    // Do not follow links in a collection picker. The user can install the
+    // real directory explicitly after reviewing its location.
+    if (info === null || info.isSymbolicLink()) continue
+    let manifestPath
+    let fallbackName
+    if (info.isDirectory()) {
+      manifestPath = join(full, 'SKILL.md')
+      fallbackName = entry.name
+    } else if (info.isFile() && extname(entry.name).toLowerCase() === '.md') {
+      manifestPath = full
+      fallbackName = entry.name.slice(0, -3)
+    } else {
+      continue
+    }
+    const manifestInfo = await lstatOrNull(manifestPath)
+    if (manifestInfo === null || !manifestInfo.isFile() || manifestInfo.isSymbolicLink()) continue
+    if (manifestInfo.size > MAX_PREVIEW_SKILL_MD_BYTES) continue
+    let manifest
+    try {
+      manifest = readSkillManifest((await readFile(manifestPath)).toString('utf8'))
+    } catch {
+      continue
+    }
+    if (!manifest.ok) continue
+    const localPath = displayPath(full)
+    skills.push({
+      name: manifest.name,
+      skillId: manifest.name,
+      description: manifest.description,
+      kind: info.isDirectory() ? 'directory' : 'file',
+      path: localPath,
+      localPath,
+    })
+  }
+  if (skills.length === 0) {
+    throw new MarketError('skills/invalid-skill', 'The directory has no root SKILL.md or direct child skills', {
+      path: displaySource,
+    })
+  }
+  return {
+    kind: 'local-collection',
+    source: 'local',
+    name: basename(root),
+    description: '',
+    path: displaySource,
+    localPath: displaySource,
+    skills,
   }
 }
 

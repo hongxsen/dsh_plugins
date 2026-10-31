@@ -3,12 +3,14 @@ import assert from 'node:assert/strict'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
+  agentsSkillsRootOf,
   assertSafeRelativePath,
   displayPath,
   expandHomePath,
   isInside,
   isStagingToken,
   metadataPathOf,
+  resolveAgentsHome,
   resolveDshHome,
   safeRelativePath,
   skillsRootOf,
@@ -29,6 +31,13 @@ test('resolveDshHome prefers the explicit path, then DSH_HOME, then ~/.dsh', () 
   assert.equal(resolveDshHome(undefined, { DSH_HOME: '   ' }), resolve(join(homedir(), '.dsh')))
   assert.equal(resolveDshHome(undefined, {}), resolve(join(homedir(), '.dsh')))
   assert.equal(resolveDshHome(undefined, { DSH_HOME: '~/custom' }), resolve(join(homedir(), 'custom')))
+})
+
+test('resolveAgentsHome prefers the explicit path, then DSH_AGENTS_HOME, then ~/.agents', () => {
+  assert.equal(resolveAgentsHome('/custom/agents', { DSH_AGENTS_HOME: '/env/agents' }), resolve('/custom/agents'))
+  assert.equal(resolveAgentsHome(undefined, { DSH_AGENTS_HOME: '/env/agents' }), resolve('/env/agents'))
+  assert.equal(resolveAgentsHome(undefined, {}), resolve(join(homedir(), '.agents')))
+  assert.equal(agentsSkillsRootOf('/custom/agents'), join('/custom/agents', 'skills'))
 })
 
 test('derived roots stay under the DSH home', () => {

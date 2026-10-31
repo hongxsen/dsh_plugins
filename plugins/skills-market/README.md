@@ -71,6 +71,7 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 「发现」页搜索框右侧的「本地安装」按钮可以从本机目录安装技能：
 
 - 填一个包含 `SKILL.md` 的目录，或直接填一个 `SKILL.md` 文件；
+- 也可以填 `~/.claude/skills` 这类集合目录：插件只读取直接子目录/扁平 Markdown 的 manifest，先列出技能供选择，再对选中的技能执行完整预览，不会把集合目录当成一个技能或递归扫描整棵树；
 - 支持绝对路径、`~/` 和 `file://`；相对路径会被拒绝；
 - 预览阶段会校验 frontmatter、列出全部文件并执行与远程安装相同的安全扫描，确认后才写入 `~/.dsh/skills/<name>`；
 - 原目录只读，不会被移动、复制后再删除或修改；符号链接、特殊文件和 `..` 路径会被拒绝；
@@ -81,6 +82,7 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 ## 技能装到哪里
 
 - 技能目录：`<DSH_HOME>/skills/<frontmatter-name>/`，默认即 `~/.dsh/skills/<name>/`；如果 `skills` 本身是符号链接，安装会被拒绝（`skills/install-failed`）。
+- 「已安装」同时列出 DSH 的共享用户技能根 `<DSH_AGENTS_HOME>/skills`（默认 `~/.agents/skills`），与 DSH 的技能发现范围一致；这些条目不带市场管理标记，不能被市场移除。技能入口符号链接会只读列出，指向根目录外时标记为只读；嵌套 payload 符号链接仍不递归。
   - `DSH_HOME` 的解析顺序与 DSH 一致：显式配置 → `$DSH_HOME` → `~/.dsh`。
   - 安装时以 `SKILL.md` frontmatter 里的 `name`（kebab-case）作为目录名。
   - 扁平技能（仓库里的 `<skillId>.md`）会规范化成 `<name>/SKILL.md`，保证结果是一个标准技能目录。
@@ -121,7 +123,7 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 | GET | `/api/sources` | — | `{ version, selected, sources }` |
 | POST | `/api/sources` | `{ action: "add"\|"remove"\|"select", ... }` | `{ selected, sources, source? }` |
 | POST | `/api/preview` | `{ source, skillId }` | `{ token, name, description, source, skillId, repo, branch, path, files, totalBytes, skillMd, warnings, warningTotal, existing, target }` |
-| POST | `/api/local/preview` | `{ path }` | 同 `/api/preview`，另带 `kind: "local"`、`localPath`，`repo`/`branch` 为空 |
+| POST | `/api/local/preview` | `{ path }` | 单技能同 `/api/preview`，另带 `kind: "local"`、`localPath`；集合目录返回 `kind: "local-collection"` 与 `skills` 候选列表，不生成 token |
 | POST | `/api/install` | `{ token, replace? }` | `{ installed: true, name }` |
 | GET | `/api/installed` | — | `{ skills: [...] }` |
 | POST | `/api/remove` | `{ name }` | `{ removed: true }` |

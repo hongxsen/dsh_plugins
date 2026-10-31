@@ -10,7 +10,7 @@
 export const PACKAGE_NAME = '@hongxsen/dsh-skills-market'
 
 /** Plugin version reported by `/api/health`. */
-export const VERSION = '0.3.0'
+export const VERSION = '0.3.1'
 
 /** Prefix route owned by this plugin. */
 export const ROUTE_PREFIX = '/dsh-skills-market'

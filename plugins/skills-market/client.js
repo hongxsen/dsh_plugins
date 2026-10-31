@@ -129,14 +129,17 @@ window.__ModuleLoader__.load({
         "errorSourceInvalidIndex": "JSON 索引格式不正确，请检查 format 和字段。",
         "localInstall": "本地安装",
         "localDialogTitle": "从本地安装技能",
-        "localDialogSubtitle": "填写包含 SKILL.md 的目录，或直接填写一个 SKILL.md 文件。",
+        "localDialogSubtitle": "填写技能目录、SKILL.md 文件，或包含多个技能的集合目录。",
         "localPathLabel": "本地路径",
-        "localPathPlaceholder": "~/work/my-skill 或 /Users/you/skills/my-skill",
-        "localPathNote": "只会读取该目录，不会移动或修改原文件；符号链接和不支持的文件会被拒绝。",
+        "localPathPlaceholder": "~/work/my-skill、~/.claude/skills 或 SKILL.md",
+        "localPathNote": "只会读取该目录，不会移动或修改原文件；集合目录会先让你选择技能，符号链接和不支持的文件会被拒绝。",
         "localPreview": "预览本地技能",
         "localPreviewBusy": "正在读取…",
         "previewLocalPath": "本地路径",
-        "previewLocalSource": "本地目录"
+        "previewLocalSource": "本地目录",
+        "localCollectionTitle": "选择要安装的技能",
+        "localCollectionNote": "这个目录包含多个技能。请选择一个技能继续预览和安装。",
+        "installedAgentsRoot": "共享技能目录 ~/.agents"
       },
       "en": {
         "panel": "Skills",
@@ -253,14 +256,17 @@ window.__ModuleLoader__.load({
         "errorSourceInvalidIndex": "The JSON index format is invalid. Check format and fields.",
         "localInstall": "Install from folder",
         "localDialogTitle": "Install a local skill",
-        "localDialogSubtitle": "Point at a directory that contains SKILL.md, or at a single SKILL.md file.",
+        "localDialogSubtitle": "Point at a skill directory, a SKILL.md file, or a directory containing several skills.",
         "localPathLabel": "Local path",
-        "localPathPlaceholder": "~/work/my-skill or /Users/you/skills/my-skill",
-        "localPathNote": "The folder is read only; it is never moved or modified. Symlinks and unsupported files are rejected.",
+        "localPathPlaceholder": "~/work/my-skill, ~/.claude/skills, or SKILL.md",
+        "localPathNote": "The folder is read only and never moved or modified. Collections let you choose a skill first; symlinks and unsupported files are rejected.",
         "localPreview": "Preview local skill",
         "localPreviewBusy": "Reading…",
         "previewLocalPath": "Local path",
-        "previewLocalSource": "Local folder"
+        "previewLocalSource": "Local folder",
+        "localCollectionTitle": "Choose a skill to install",
+        "localCollectionNote": "This directory contains several skills. Choose one to preview and install.",
+        "installedAgentsRoot": "Shared skills ~/.agents"
       }
     }
 
@@ -503,6 +509,7 @@ function normalizeInstalled(value) {
     if (typeof raw.source === 'string') entry.source = raw.source
     if (typeof raw.installedAt === 'string') entry.installedAt = raw.installedAt
     if (typeof raw.path === 'string') entry.path = raw.path
+    if (raw.root === 'user-agents') entry.root = raw.root
     out.push(entry)
   }
   return out
@@ -1561,6 +1568,44 @@ body[data-ds-dark-theme] .dshsm-avatar {
   font-size: 12px;
   line-height: 18px;
 }
+.dshsm-localCollectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(52vh, 460px);
+  overflow: auto;
+}
+.dshsm-localCollectionItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-primary);
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .dshsm-localCollectionItem:hover { background: var(--dsw-alias-interactive-bg-hover); }
+}
+.dshsm-localCollectionName { font-size: 13px; line-height: 19px; font-weight: 500; }
+.dshsm-localCollectionDesc {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 17px;
+  overflow-wrap: anywhere;
+}
+.dshsm-localCollectionPath {
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
 .dshsm-sourceSection { display: flex; flex-direction: column; gap: 6px; }
 .dshsm-sourceList { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .dshsm-sourceRow {
@@ -2258,6 +2303,66 @@ function LocalInstallDialog({ t, path, error, busy, onClose, onChange, onSubmit 
         className: 'dshsm-btn dshsm-btnPrimary',
         disabled: busy,
       }, busy ? t('localPreviewBusy') : t('localPreview')),
+    ),
+  ),
+  ),
+  )
+}
+
+/**
+ * Picker for a directory containing several direct child skills.
+ * Selecting one child goes through the ordinary local preview pipeline.
+ */
+function LocalCollectionDialog({ t, state, onClose, onSelect }) {
+  const data = state.data ?? {}
+  const skills = Array.isArray(data.skills) ? data.skills : []
+  React.useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [onClose])
+  return h('div', {
+    className: 'dshsm-overlay',
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshsm-dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-label': t('localCollectionTitle'),
+    tabIndex: -1,
+  },
+  h('div', { className: 'dshsm-dialogHead' },
+    h('div', { className: 'dshsm-dialogTitleWrap' },
+      h('h2', { className: 'dshsm-dialogTitle' }, t('localCollectionTitle')),
+      h('div', { className: 'dshsm-dialogSubtitle' }, data.localPath ?? data.path ?? ''),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshsm-iconBtn',
+      'aria-label': t('sourceClose'),
+      onClick: onClose,
+    }, h(CloseIcon, { size: 16 })),
+  ),
+  h('div', { className: 'dshsm-dialogBody' },
+    h('p', { className: 'dshsm-note' }, t('localCollectionNote')),
+    h('div', { className: 'dshsm-localCollectionList' },
+      skills.map((skill) => h('button', {
+        type: 'button',
+        className: 'dshsm-localCollectionItem',
+        key: skill.localPath ?? skill.path ?? skill.name,
+        onClick: () => onSelect(skill.localPath ?? skill.path),
+      },
+      h('span', { className: 'dshsm-localCollectionName' }, skill.name),
+      skill.description ? h('span', { className: 'dshsm-localCollectionDesc' }, skill.description) : null,
+      h('span', { className: 'dshsm-localCollectionPath' }, skill.localPath ?? skill.path),
+      )),
     ),
   ),
   ),
@@ -3153,6 +3258,7 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       const armed = removal.name === item.name && removal.armed === item.name
       const meta = []
       if (typeof item.source === 'string' && item.source !== '') meta.push(item.source)
+      if (item.root === 'user-agents') meta.push(t('installedAgentsRoot'))
       if (typeof item.installedAt === 'string') {
         const installedAt = formatDate(item.installedAt, locale)
         if (installedAt !== '') meta.push(t('installedAt', { date: installedAt }))
@@ -3301,20 +3407,27 @@ function createMarketPage({ api, fallbackT, getLocale }) {
         ),
       ),
       body,
-      preview === null ? null : h(PreviewDialog, {
-        t,
-        state: preview,
-        installing,
-        onClose: closePreview,
-        onRetry: () => {
-          if (preview.entry !== null && preview.entry !== undefined && preview.entry.kind === 'local') {
-            void openLocalPreview(preview.entry.path)
-          } else {
-            void openPreview(preview.entry)
-          }
-        },
-        onInstall: () => { void confirmInstall() },
-      }),
+      preview === null ? null : preview.status === 'ready' && preview.data?.kind === 'local-collection'
+        ? h(LocalCollectionDialog, {
+          t,
+          state: preview,
+          onClose: closePreview,
+          onSelect: (path) => { void openLocalPreview(path) },
+        })
+        : h(PreviewDialog, {
+          t,
+          state: preview,
+          installing,
+          onClose: closePreview,
+          onRetry: () => {
+            if (preview.entry !== null && preview.entry !== undefined && preview.entry.kind === 'local') {
+              void openLocalPreview(preview.entry.path)
+            } else {
+              void openPreview(preview.entry)
+            }
+          },
+          onInstall: () => { void confirmInstall() },
+        }),
       sourcesOpen
         ? h(SourceDialog, {
           t,

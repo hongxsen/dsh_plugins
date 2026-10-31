@@ -1,17 +1,18 @@
 /**
- * Read-only scan of `<dshHome>/skills`.
+ * Read-only scan of the user skill roots used by DSH.
  *
- * The scan mirrors what the DSH skill provider discovers: directories with a
- * `SKILL.md` and flat `<name>.md` files directly under the skills root. It
- * joins managed metadata, runs a fresh content scan for warnings, and marks an
- * entry writable only when its real path stays inside the root.
+ * The scan mirrors the DSH skill provider: directories with a `SKILL.md` and
+ * flat `<name>.md` files directly under each root. It joins managed metadata,
+ * runs a fresh content scan for warnings, and follows entry-point symlinks
+ * read-only (nested payload symlinks are still ignored).
  */
-import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
+import { lstat, readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readSkillManifest } from './frontmatter.js'
 import { isManaged, readMetadata } from './metadata.js'
 import { scanBuffer } from './scan.js'
 import {
+  agentsSkillsRootOf,
   displayPath,
   isInside,
   metadataPathOf,
@@ -25,12 +26,20 @@ const MAX_MANIFEST_BYTES = 512 * 1024
 /** Metadata fields copied into an installed entry. */
 const METADATA_FIELDS = Object.freeze(['source', 'skillId', 'repo', 'branch', 'path', 'installedAt'])
 
-/** `lstat` that maps absence to `null`. */
+/** `lstat` that maps absence and unreadable entries to `null`. */
 async function lstatOrNull(path) {
   try {
     return await lstat(path)
-  } catch (error) {
-    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return null
+  } catch {
+    return null
+  }
+}
+
+/** `stat` that maps absence and unreadable entries to `null`. */
+async function statOrNull(path) {
+  try {
+    return await stat(path)
+  } catch {
     return null
   }
 }
@@ -46,8 +55,10 @@ async function inspectPayload(entryPath, isDirectory) {
   let totalBytes = 0
   let warnings = 0
   if (!isDirectory) {
-    const info = await lstatOrNull(entryPath)
-    if (info === null || !info.isFile() || info.isSymbolicLink()) return { files, totalBytes, warnings }
+    // The entry itself may be a symlink. DSH follows it for discovery; do the
+    // same here, while the entry's writability is determined separately.
+    const info = await statOrNull(entryPath)
+    if (info === null || !info.isFile()) return { files, totalBytes, warnings }
     files = 1
     totalBytes = info.size
     if (info.size <= MAX_SCAN_BYTES) {
@@ -70,6 +81,8 @@ async function inspectPayload(entryPath, isDirectory) {
       if (files >= MAX_FILES || totalBytes >= MAX_TOTAL_BYTES) return
       const full = join(directory, entry.name)
       const info = await lstatOrNull(full)
+      // Do not recurse through payload symlinks. Only the skill entry point
+      // itself is followed, matching the provider without escaping a tree.
       if (info === null || info.isSymbolicLink()) continue
       if (info.isDirectory()) {
         await walk(full)
@@ -100,11 +113,9 @@ async function inspectPayload(entryPath, isDirectory) {
  */
 async function readManifest(entryPath, isDirectory, fallbackName) {
   const manifestPath = isDirectory ? join(entryPath, 'SKILL.md') : entryPath
-  const info = await lstatOrNull(manifestPath)
-  if (info === null || !info.isFile() || info.isSymbolicLink()) {
-    return { name: fallbackName, description: '', valid: false }
-  }
-  if (info.size > MAX_MANIFEST_BYTES) {
+  // Follow the entry-point symlink, but keep the size limit before reading.
+  const info = await statOrNull(manifestPath)
+  if (info === null || !info.isFile() || info.size > MAX_MANIFEST_BYTES) {
     return { name: fallbackName, description: '', valid: false }
   }
   let text
@@ -119,21 +130,18 @@ async function readManifest(entryPath, isDirectory, fallbackName) {
 }
 
 /**
- * Scan installed skills.
- * @param dshHome - absolute DSH home.
- * @returns installed entries sorted by name.
+ * Scan one root. `managedRoot` controls whether market metadata is joined;
+ * shared agent skills are intentionally never treated as market-managed.
  */
-export async function scanInstalledSkills(dshHome) {
-  const skillsRootRaw = skillsRootOf(dshHome)
+async function scanRoot(rootRaw, metadata, { managedRoot = false, rootKind = undefined } = {}) {
   let skillsRoot
   try {
-    skillsRoot = await realpath(skillsRootRaw)
+    skillsRoot = await realpath(rootRaw)
   } catch {
     return []
   }
-  const rootInfo = await lstatOrNull(skillsRoot)
+  const rootInfo = await statOrNull(skillsRoot)
   if (rootInfo === null || !rootInfo.isDirectory()) return []
-  const metadata = await readMetadata(metadataPathOf(dshHome))
   let dirents
   try {
     dirents = await readdir(skillsRoot, { withFileTypes: true })
@@ -141,27 +149,32 @@ export async function scanInstalledSkills(dshHome) {
     return []
   }
 
-  const directoryNames = new Set()
+  // Dirent.isDirectory()/isFile() are false for symlinks. Stat each direct
+  // entry once so symlinked skills are discovered just like regular entries.
+  const kinds = new Map()
   for (const dirent of dirents) {
-    if (dirent.isDirectory()) directoryNames.add(dirent.name)
+    if (dirent.name.startsWith('.')) continue
+    const info = await statOrNull(join(skillsRoot, dirent.name))
+    if (info !== null) kinds.set(dirent.name, info)
   }
+  const directoryNames = new Set(
+    [...kinds.entries()].filter(([, info]) => info.isDirectory()).map(([name]) => name),
+  )
 
   const entries = []
   for (const dirent of dirents) {
-    const isDirectory = dirent.isDirectory()
-    const isFlat = dirent.isFile() && dirent.name.endsWith('.md') && !dirent.name.startsWith('.')
+    if (dirent.name.startsWith('.')) continue
+    const info = kinds.get(dirent.name)
+    if (info === undefined) continue
+    const isDirectory = info.isDirectory()
+    const isFlat = info.isFile() && dirent.name.endsWith('.md')
     if (!isDirectory && !isFlat) continue
-    if (!isDirectory) {
-      const stem = dirent.name.slice(0, -3)
-      if (directoryNames.has(stem)) continue
-    }
+    if (!isDirectory && directoryNames.has(dirent.name.slice(0, -3))) continue
+
     const entryPath = join(skillsRoot, dirent.name)
-    const info = await lstatOrNull(entryPath)
-    if (info === null) continue
-    if (info.isSymbolicLink()) continue
     if (isDirectory) {
-      const manifestInfo = await lstatOrNull(join(entryPath, 'SKILL.md'))
-      if (manifestInfo === null || !manifestInfo.isFile() || manifestInfo.isSymbolicLink()) continue
+      const manifestInfo = await statOrNull(join(entryPath, 'SKILL.md'))
+      if (manifestInfo === null || !manifestInfo.isFile()) continue
     }
     const fallbackName = isDirectory ? dirent.name : dirent.name.slice(0, -3)
     let realEntry
@@ -171,21 +184,26 @@ export async function scanInstalledSkills(dshHome) {
       continue
     }
     const contained = isInside(skillsRoot, realEntry)
-    if (!contained) continue
+    const entrySymlink = dirent.isSymbolicLink()
     const manifest = await readManifest(entryPath, isDirectory, fallbackName)
     const payload = await inspectPayload(entryPath, isDirectory)
-    const record = isManaged(metadata, manifest.name) ? metadata.skills[manifest.name] : undefined
+    const record = managedRoot && contained && !entrySymlink && isManaged(metadata, manifest.name)
+      ? metadata.skills[manifest.name]
+      : undefined
     const entry = {
       name: manifest.name,
       description: manifest.description,
       valid: manifest.valid,
       managed: record !== undefined,
-      writable: contained,
+      writable: contained && !entrySymlink,
       path: displayPath(entryPath),
       files: payload.files,
       totalBytes: payload.totalBytes,
       warnings: payload.warnings,
     }
+    // Keep the original DSH-root response shape stable; identify additional
+    // roots explicitly so the client can explain why they are not removable.
+    if (rootKind !== undefined) entry.root = rootKind
     if (record !== undefined) {
       for (const field of METADATA_FIELDS) {
         if (record[field] !== undefined) entry[field] = record[field]
@@ -193,12 +211,27 @@ export async function scanInstalledSkills(dshHome) {
     }
     entries.push(entry)
   }
-  entries.sort((left, right) => left.name.localeCompare(right.name))
   return entries
 }
 
 /**
- * Return whether a skill name already occupies the skills root.
+ * Scan installed skills.
+ * @param dshHome - absolute DSH home.
+ * @param options - optional `{ agentsHome }`; omitted keeps this low-level
+ *   helper limited to the DSH root for deterministic callers and tests.
+ * @returns installed entries sorted by name, then path.
+ */
+export async function scanInstalledSkills(dshHome, { agentsHome = undefined } = {}) {
+  const metadata = await readMetadata(metadataPathOf(dshHome))
+  const roots = [await scanRoot(skillsRootOf(dshHome), metadata, { managedRoot: true })]
+  if (agentsHome !== undefined && agentsHome !== null && agentsHome !== '') {
+    roots.push(await scanRoot(agentsSkillsRootOf(agentsHome), metadata, { rootKind: 'user-agents' }))
+  }
+  return roots.flat().sort((left, right) => left.name.localeCompare(right.name) || left.path.localeCompare(right.path))
+}
+
+/**
+ * Return whether a skill name already occupies the DSH skills root.
  * @param dshHome - absolute DSH home.
  * @param name - kebab-case skill name.
  * @returns whether `<root>/<name>` or `<root>/<name>.md` exists.

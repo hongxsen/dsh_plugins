@@ -31,7 +31,7 @@ import {
 import { previewLocalSkill } from './local.js'
 import { scanInstalledSkills, skillExists } from './installed.js'
 import { runPool } from './pool.js'
-import { displayPath, resolveDshHome, skillsRootOf } from './paths.js'
+import { displayPath, resolveAgentsHome, resolveDshHome, skillsRootOf } from './paths.js'
 import {
   downloadRawFile,
   fetchCandidateManifest,
@@ -75,7 +75,9 @@ function parentDirectory(path) {
  * @param options.fetchImpl - fetch implementation (tests pass a stub).
  * @param options.env - environment mapping used for `DSH_HOME`/`GITHUB_TOKEN`.
  * @param options.dshHome - explicit DSH home (tests).
+ * @param options.agentsHome - explicit shared agents home; `null` disables that root.
  * @param options.resolveHome - function returning the DSH home (overrides).
+ * @param options.resolveAgentsHome - function returning the shared agents home.
  * @param options.now - clock returning epoch milliseconds (tests).
  * @returns the service.
  */
@@ -86,6 +88,9 @@ export function createSkillsMarket(options = {}) {
   const resolveHome = typeof options.resolveHome === 'function'
     ? options.resolveHome
     : () => resolveDshHome(options.dshHome, env)
+  const resolveAgents = typeof options.resolveAgentsHome === 'function'
+    ? options.resolveAgentsHome
+    : () => options.agentsHome === null ? null : resolveAgentsHome(options.agentsHome, env)
 
   const searchCache = new Map()
   const detailCache = new Map()
@@ -419,7 +424,7 @@ export function createSkillsMarket(options = {}) {
    * @returns `{ skills }`.
    */
   async function installed() {
-    return { skills: await scanInstalledSkills(resolveHome()) }
+    return { skills: await scanInstalledSkills(resolveHome(), { agentsHome: resolveAgents() }) }
   }
 
   /**

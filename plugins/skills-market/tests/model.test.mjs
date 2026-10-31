@@ -106,6 +106,7 @@ test('normalizeInstalled keeps safe booleans and counts', () => {
   assert.equal(installed[1].managed, false)
   assert.equal(installed[1].warnings, 0)
   assert.equal(installed[1].valid, true)
+  assert.equal(normalizeInstalled([{ name: 'shared', root: 'user-agents' }])[0].root, 'user-agents')
 })
 
 test('formatDate renders a stable short date and tolerates junk', () => {

@@ -270,3 +270,25 @@ test('the preview dialog renders files, warnings, and the second confirm state',
     && element.props.className?.includes('btnPrimary'))
   assert.equal(confirm.children[0], 'previewReplace')
 })
+
+test('a local collection renders a picker instead of an install preview', () => {
+  const queue = []
+  queue[15] = {
+    status: 'ready',
+    entry: { kind: 'local', path: '~/.claude/skills' },
+    armed: false,
+    error: null,
+    data: {
+      kind: 'local-collection',
+      localPath: '~/.claude/skills',
+      skills: [{ name: 'demo', description: 'A local skill', localPath: '~/.claude/skills/demo' }],
+    },
+  }
+  const { tree } = renderPage(queue)
+  const dialog = flattenElements(tree).find((element) => typeof element.type === 'function' && element.props.state !== undefined)
+  assert.notEqual(dialog, undefined)
+  const dialogTree = flattenElements(dialog.type(dialog.props))
+  assert.ok(dialogTree.some((element) => element.props.className === 'dshsm-localCollectionItem'))
+  assert.ok(dialogTree.some((element) => element.children.includes('localCollectionTitle')))
+  assert.equal(dialogTree.some((element) => element.props.className === 'dshsm-previewSummary'), false)
+})

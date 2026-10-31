@@ -137,6 +137,7 @@ test('preview stages files, scans warnings, and install/remove round-trips', asy
   const service = createSkillsMarket({
     fetchImpl: routes(demoRoutes()),
     dshHome: home,
+    agentsHome: join(home, 'agents'),
     now: () => NOW,
   })
   const preview = await service.preview('acme/skills', 'demo')
@@ -266,7 +267,7 @@ test('health reports the skills root and version', async () => {
   const service = createSkillsMarket({ dshHome: HOME, now: () => NOW })
   const health = await service.health()
   assert.equal(health.ok, true)
-  assert.equal(health.version, '0.3.0')
+  assert.equal(health.version, '0.3.1')
   assert.match(health.root, /skills$/u)
 })
 

@@ -849,6 +849,44 @@ body[data-ds-dark-theme] .dshsm-avatar {
   font-size: 12px;
   line-height: 18px;
 }
+.dshsm-localCollectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(52vh, 460px);
+  overflow: auto;
+}
+.dshsm-localCollectionItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-primary);
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .dshsm-localCollectionItem:hover { background: var(--dsw-alias-interactive-bg-hover); }
+}
+.dshsm-localCollectionName { font-size: 13px; line-height: 19px; font-weight: 500; }
+.dshsm-localCollectionDesc {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 17px;
+  overflow-wrap: anywhere;
+}
+.dshsm-localCollectionPath {
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
 .dshsm-sourceSection { display: flex; flex-direction: column; gap: 6px; }
 .dshsm-sourceList { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .dshsm-sourceRow {
@@ -1546,6 +1584,66 @@ function LocalInstallDialog({ t, path, error, busy, onClose, onChange, onSubmit 
         className: 'dshsm-btn dshsm-btnPrimary',
         disabled: busy,
       }, busy ? t('localPreviewBusy') : t('localPreview')),
+    ),
+  ),
+  ),
+  )
+}
+
+/**
+ * Picker for a directory containing several direct child skills.
+ * Selecting one child goes through the ordinary local preview pipeline.
+ */
+function LocalCollectionDialog({ t, state, onClose, onSelect }) {
+  const data = state.data ?? {}
+  const skills = Array.isArray(data.skills) ? data.skills : []
+  React.useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [onClose])
+  return h('div', {
+    className: 'dshsm-overlay',
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshsm-dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-label': t('localCollectionTitle'),
+    tabIndex: -1,
+  },
+  h('div', { className: 'dshsm-dialogHead' },
+    h('div', { className: 'dshsm-dialogTitleWrap' },
+      h('h2', { className: 'dshsm-dialogTitle' }, t('localCollectionTitle')),
+      h('div', { className: 'dshsm-dialogSubtitle' }, data.localPath ?? data.path ?? ''),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshsm-iconBtn',
+      'aria-label': t('sourceClose'),
+      onClick: onClose,
+    }, h(CloseIcon, { size: 16 })),
+  ),
+  h('div', { className: 'dshsm-dialogBody' },
+    h('p', { className: 'dshsm-note' }, t('localCollectionNote')),
+    h('div', { className: 'dshsm-localCollectionList' },
+      skills.map((skill) => h('button', {
+        type: 'button',
+        className: 'dshsm-localCollectionItem',
+        key: skill.localPath ?? skill.path ?? skill.name,
+        onClick: () => onSelect(skill.localPath ?? skill.path),
+      },
+      h('span', { className: 'dshsm-localCollectionName' }, skill.name),
+      skill.description ? h('span', { className: 'dshsm-localCollectionDesc' }, skill.description) : null,
+      h('span', { className: 'dshsm-localCollectionPath' }, skill.localPath ?? skill.path),
+      )),
     ),
   ),
   ),
@@ -2441,6 +2539,7 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       const armed = removal.name === item.name && removal.armed === item.name
       const meta = []
       if (typeof item.source === 'string' && item.source !== '') meta.push(item.source)
+      if (item.root === 'user-agents') meta.push(t('installedAgentsRoot'))
       if (typeof item.installedAt === 'string') {
         const installedAt = formatDate(item.installedAt, locale)
         if (installedAt !== '') meta.push(t('installedAt', { date: installedAt }))
@@ -2589,20 +2688,27 @@ function createMarketPage({ api, fallbackT, getLocale }) {
         ),
       ),
       body,
-      preview === null ? null : h(PreviewDialog, {
-        t,
-        state: preview,
-        installing,
-        onClose: closePreview,
-        onRetry: () => {
-          if (preview.entry !== null && preview.entry !== undefined && preview.entry.kind === 'local') {
-            void openLocalPreview(preview.entry.path)
-          } else {
-            void openPreview(preview.entry)
-          }
-        },
-        onInstall: () => { void confirmInstall() },
-      }),
+      preview === null ? null : preview.status === 'ready' && preview.data?.kind === 'local-collection'
+        ? h(LocalCollectionDialog, {
+          t,
+          state: preview,
+          onClose: closePreview,
+          onSelect: (path) => { void openLocalPreview(path) },
+        })
+        : h(PreviewDialog, {
+          t,
+          state: preview,
+          installing,
+          onClose: closePreview,
+          onRetry: () => {
+            if (preview.entry !== null && preview.entry !== undefined && preview.entry.kind === 'local') {
+              void openLocalPreview(preview.entry.path)
+            } else {
+              void openPreview(preview.entry)
+            }
+          },
+          onInstall: () => { void confirmInstall() },
+        }),
       sourcesOpen
         ? h(SourceDialog, {
           t,

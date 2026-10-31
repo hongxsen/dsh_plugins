@@ -237,6 +237,7 @@ export function normalizeInstalled(value) {
     if (typeof raw.source === 'string') entry.source = raw.source
     if (typeof raw.installedAt === 'string') entry.installedAt = raw.installedAt
     if (typeof raw.path === 'string') entry.path = raw.path
+    if (raw.root === 'user-agents') entry.root = raw.root
     out.push(entry)
   }
   return out

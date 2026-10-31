@@ -117,12 +117,15 @@
   "errorSourceInvalidIndex": "The JSON index format is invalid. Check format and fields.",
   "localInstall": "Install from folder",
   "localDialogTitle": "Install a local skill",
-  "localDialogSubtitle": "Point at a directory that contains SKILL.md, or at a single SKILL.md file.",
+  "localDialogSubtitle": "Point at a skill directory, a SKILL.md file, or a directory containing several skills.",
   "localPathLabel": "Local path",
-  "localPathPlaceholder": "~/work/my-skill or /Users/you/skills/my-skill",
-  "localPathNote": "The folder is read only; it is never moved or modified. Symlinks and unsupported files are rejected.",
+  "localPathPlaceholder": "~/work/my-skill, ~/.claude/skills, or SKILL.md",
+  "localPathNote": "The folder is read only and never moved or modified. Collections let you choose a skill first; symlinks and unsupported files are rejected.",
   "localPreview": "Preview local skill",
   "localPreviewBusy": "Reading…",
   "previewLocalPath": "Local path",
-  "previewLocalSource": "Local folder"
+  "previewLocalSource": "Local folder",
+  "localCollectionTitle": "Choose a skill to install",
+  "localCollectionNote": "This directory contains several skills. Choose one to preview and install.",
+  "installedAgentsRoot": "Shared skills ~/.agents"
 }

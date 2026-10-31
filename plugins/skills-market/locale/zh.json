@@ -117,12 +117,15 @@
   "errorSourceInvalidIndex": "JSON 索引格式不正确，请检查 format 和字段。",
   "localInstall": "本地安装",
   "localDialogTitle": "从本地安装技能",
-  "localDialogSubtitle": "填写包含 SKILL.md 的目录，或直接填写一个 SKILL.md 文件。",
+  "localDialogSubtitle": "填写技能目录、SKILL.md 文件，或包含多个技能的集合目录。",
   "localPathLabel": "本地路径",
-  "localPathPlaceholder": "~/work/my-skill 或 /Users/you/skills/my-skill",
-  "localPathNote": "只会读取该目录，不会移动或修改原文件；符号链接和不支持的文件会被拒绝。",
+  "localPathPlaceholder": "~/work/my-skill、~/.claude/skills 或 SKILL.md",
+  "localPathNote": "只会读取该目录，不会移动或修改原文件；集合目录会先让你选择技能，符号链接和不支持的文件会被拒绝。",
   "localPreview": "预览本地技能",
   "localPreviewBusy": "正在读取…",
   "previewLocalPath": "本地路径",
-  "previewLocalSource": "本地目录"
+  "previewLocalSource": "本地目录",
+  "localCollectionTitle": "选择要安装的技能",
+  "localCollectionNote": "这个目录包含多个技能。请选择一个技能继续预览和安装。",
+  "installedAgentsRoot": "共享技能目录 ~/.agents"
 }

@@ -25,7 +25,7 @@ test('a local skill directory previews, stages, and installs', async () => {
   const sourceRoot = await mkdtemp(join(tmpdir(), 'skills-source-'))
   try {
     const directory = await makeSkill(sourceRoot)
-    const service = createSkillsMarket({ dshHome: home, fetchImpl: async () => { throw new Error('network must not be used') } })
+    const service = createSkillsMarket({ dshHome: home, agentsHome: join(home, 'agents'), fetchImpl: async () => { throw new Error('network must not be used') } })
     const preview = await service.previewLocal(directory)
     assert.equal(preview.kind, 'local')
     assert.equal(preview.name, 'local-review')
@@ -54,7 +54,7 @@ test('a single local SKILL.md file can be installed', async () => {
   try {
     const file = join(sourceRoot, 'SKILL.md')
     await writeFile(file, SKILL_MD.replace('local-review', 'flat-skill'))
-    const service = createSkillsMarket({ dshHome: home, fetchImpl: async () => { throw new Error('network must not be used') } })
+    const service = createSkillsMarket({ dshHome: home, agentsHome: join(home, 'agents'), fetchImpl: async () => { throw new Error('network must not be used') } })
     const preview = await service.previewLocal(file)
     assert.equal(preview.name, 'flat-skill')
     assert.deepEqual(preview.files.map((entry) => entry.path), ['SKILL.md'])
@@ -66,11 +66,36 @@ test('a single local SKILL.md file can be installed', async () => {
   }
 })
 
+test('a local collection lists direct child skills before previewing one', async () => {
+  const { home, cleanup } = await tempHome()
+  const collection = await mkdtemp(join(tmpdir(), 'skills-collection-'))
+  try {
+    await mkdir(join(collection, 'alpha'), { recursive: true })
+    await mkdir(join(collection, 'beta'), { recursive: true })
+    await writeFile(join(collection, 'alpha', 'SKILL.md'), SKILL_MD.replace('local-review', 'alpha-skill'))
+    await writeFile(join(collection, 'beta', 'SKILL.md'), SKILL_MD.replace('local-review', 'beta-skill'))
+    await writeFile(join(collection, 'flat.md'), SKILL_MD.replace('local-review', 'flat-skill'))
+    await writeFile(join(collection, 'notes.txt'), 'not a skill')
+    const service = createSkillsMarket({ dshHome: home, agentsHome: join(home, 'agents'), fetchImpl: async () => { throw new Error('network must not be used') } })
+    const listing = await service.previewLocal(collection)
+    assert.equal(listing.kind, 'local-collection')
+    assert.deepEqual(listing.skills.map((skill) => skill.name), ['alpha-skill', 'beta-skill', 'flat-skill'])
+    assert.equal(listing.token, undefined)
+    const selected = await service.previewLocal(join(collection, 'alpha'))
+    assert.equal(selected.kind, 'local')
+    assert.equal(selected.name, 'alpha-skill')
+    assert.equal(selected.files.length, 1)
+  } finally {
+    await rm(collection, { recursive: true, force: true })
+    await cleanup()
+  }
+})
+
 test('local skill validation rejects missing paths, relative paths, and symlinks', async () => {
   const { home, cleanup } = await tempHome()
   const sourceRoot = await mkdtemp(join(tmpdir(), 'skills-links-'))
   try {
-    const service = createSkillsMarket({ dshHome: home, fetchImpl: async () => { throw new Error('network must not be used') } })
+    const service = createSkillsMarket({ dshHome: home, agentsHome: join(home, 'agents'), fetchImpl: async () => { throw new Error('network must not be used') } })
     await assert.rejects(service.previewLocal(join(sourceRoot, 'missing')), (error) => error.code === 'skills/not-found')
     await assert.rejects(service.previewLocal('relative/SKILL.md'), (error) => error.code === 'skills/invalid-path')
     const directory = await makeSkill(sourceRoot)

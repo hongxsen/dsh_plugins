@@ -42,6 +42,24 @@ export function skillsRootOf(dshHome) {
   return join(dshHome, SKILLS_DIR_NAME)
 }
 
+/**
+ * Resolve the shared agent home used by DSH's second user skill root.
+ * Explicit values win, then `$DSH_AGENTS_HOME`, then `~/.agents`.
+ * @param configured - explicit override, when a caller has one.
+ * @param env - environment mapping; defaults to `process.env`.
+ * @returns the absolute shared agent home.
+ */
+export function resolveAgentsHome(configured, env = process.env) {
+  const fromEnv = env?.DSH_AGENTS_HOME
+  const root = configured ?? (typeof fromEnv === 'string' && fromEnv.trim() !== '' ? fromEnv.trim() : join(homedir(), '.agents'))
+  return resolve(expandHomePath(root))
+}
+
+/** Absolute path of the shared agent skills root. */
+export function agentsSkillsRootOf(agentsHome) {
+  return join(agentsHome, SKILLS_DIR_NAME)
+}
+
 /** Absolute path of this plugin's storage root. */
 export function storageRootOf(dshHome) {
   return join(dshHome, 'storages', STORAGE_DIR_NAME)

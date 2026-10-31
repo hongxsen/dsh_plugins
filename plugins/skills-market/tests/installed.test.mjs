@@ -81,18 +81,53 @@ test('scanInstalledSkills reports invalid manifests and counts warnings', async 
   assert.equal(risky.files, 3)
 })
 
-test('scanInstalledSkills skips symlinks and returns empty without a skills root', async (t) => {
+test('scanInstalledSkills lists entry symlinks read-only and handles missing roots', async (t) => {
   const { home, root } = await fixture(t)
   const external = join(home, 'external')
   await mkdir(external, { recursive: true })
   await writeFile(join(external, 'SKILL.md'), skillMd('linked'))
   await symlink(external, join(root, 'linked'))
 
-  assert.deepEqual(await scanInstalledSkills(home), [])
+  const linked = await scanInstalledSkills(home)
+  assert.equal(linked.length, 1)
+  assert.equal(linked[0].name, 'linked')
+  assert.equal(linked[0].writable, false)
+  assert.equal(linked[0].managed, false)
 
   const emptyHome = await mkdtemp(join(tmpdir(), 'dshsm-empty-'))
   t.after(async () => { await rm(emptyHome, { recursive: true, force: true }) })
   assert.deepEqual(await scanInstalledSkills(emptyHome), [])
+})
+
+test('managed metadata never makes an entry symlink writable', async (t) => {
+  const { home, root } = await fixture(t)
+  await mkdir(join(root, 'real'), { recursive: true })
+  await writeFile(join(root, 'real', 'SKILL.md'), skillMd('real'))
+  await symlink(join(root, 'real'), join(root, 'linked'))
+  await writeFile(join(root, 'linked', 'SKILL.md'), skillMd('linked'))
+  await writeMetadata(metadataPathOf(home), {
+    version: 1,
+    skills: { linked: { name: 'linked', source: 'acme/skills', skillId: 'linked' } },
+  })
+  const linked = (await scanInstalledSkills(home)).find((skill) => skill.name === 'linked')
+  assert.equal(linked.writable, false)
+  assert.equal(linked.managed, false)
+})
+
+test('scanInstalledSkills includes the shared agents root without managed metadata', async (t) => {
+  const { home, root } = await fixture(t)
+  const agentsHome = join(home, 'agents')
+  const agentsRoot = join(agentsHome, 'skills')
+  await mkdir(join(agentsRoot, 'shared'), { recursive: true })
+  await writeFile(join(agentsRoot, 'shared', 'SKILL.md'), skillMd('shared', 'Shared skill'))
+  await writeFile(join(root, 'local.md'), skillMd('local'))
+  const skills = await scanInstalledSkills(home, { agentsHome })
+  assert.deepEqual(skills.map((skill) => skill.name), ['local', 'shared'])
+  const shared = skills.find((skill) => skill.name === 'shared')
+  assert.equal(shared.root, 'user-agents')
+  assert.equal(shared.managed, false)
+  assert.equal(shared.writable, true)
+  assert.match(shared.path, /agents\/skills\/shared/u)
 })
 
 test('skillExists checks both directory and flat layouts', async (t) => {
