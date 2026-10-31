@@ -1,0 +1,58 @@
+{
+  "name": "@hongxsen/dsh-mcp-market",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Browse the official MCP registry from the DSH sidebar, install a server as a managed @deepseek-ai/dsh-mcp-client row, and enable, disable, or remove it.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "model-context-protocol",
+    "marketplace",
+    "registry"
+  ],
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib/**/*.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "dsh": ">=0.2.1-0 <0.3.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hongxsen/dsh_plugins.git",
+    "directory": "plugins/mcp-market"
+  },
+  "homepage": "https://github.com/hongxsen/dsh_plugins#readme"
+}

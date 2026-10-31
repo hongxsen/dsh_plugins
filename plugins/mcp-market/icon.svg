@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="MCP Market">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f6fe4"/>
+      <stop offset="1" stop-color="#1f9d8f"/>
+    </linearGradient>
+    <linearGradient id="plug" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dce9ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <g opacity="0.32" fill="#ffffff">
+    <circle cx="14" cy="14" r="1.8"/>
+    <circle cx="51" cy="52" r="2.2"/>
+    <circle cx="53" cy="13" r="1.2"/>
+    <circle cx="11" cy="46" r="1.2"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" opacity="0.88">
+    <path d="M18 23.5 32 15l14 8.5"/>
+    <path d="M18 40.5 32 49l14-8.5"/>
+    <path d="M18 23.5v17"/>
+    <path d="M46 23.5v17"/>
+    <path d="M32 15v9"/>
+    <path d="M32 40v9"/>
+  </g>
+  <circle cx="18" cy="23.5" r="3.1" fill="#9fe3d5"/>
+  <circle cx="46" cy="23.5" r="3.1" fill="#9fe3d5"/>
+  <circle cx="18" cy="40.5" r="3.1" fill="#9fe3d5"/>
+  <circle cx="46" cy="40.5" r="3.1" fill="#9fe3d5"/>
+  <g transform="rotate(-18 32 32)">
+    <rect x="27" y="22" width="10" height="17" rx="3.4" fill="url(#plug)"/>
+    <path d="M30 39v5.5M34 39v5.5" stroke="#dce9ff" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M29.2 22v-4.5M34.8 22v-4.5" stroke="#dce9ff" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="32" cy="30.5" r="2.1" fill="#1f9d8f"/>
+  </g>
+</svg>

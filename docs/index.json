@@ -21,6 +21,12 @@
           "en": "Writing & Review",
           "zh": "写作与审阅"
         }
+      },
+      "extension": {
+        "title": {
+          "en": "Extensions",
+          "zh": "能力扩展"
+        }
       }
     }
   },

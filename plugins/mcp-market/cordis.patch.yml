@@ -1,0 +1,3 @@
+- insert:
+    - id: mcp-market
+      name: '@hongxsen/dsh-mcp-market'

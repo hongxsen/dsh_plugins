@@ -1,6 +1,9 @@
 # dependencies
 node_modules/
 
+# local scratch / extracted Harness sources
+.tmp/
+
 # build leftovers
 *.log
 npm-debug.log*

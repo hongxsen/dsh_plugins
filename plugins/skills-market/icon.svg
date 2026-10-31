@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Skills Market">
+  <rect x="17" y="15" width="30" height="36" rx="7" transform="rotate(-10 32 33)" fill="#e6eef9" stroke="#a6bad3" stroke-width="2"/>
+  <rect x="12" y="12" width="38" height="42" rx="8" fill="#fbfdff" stroke="#7d97b5" stroke-width="2"/>
+  <g stroke-linecap="round">
+    <path d="M20 24h22" stroke="#91a9c4" stroke-width="2.6"/>
+    <path d="M20 32h17" stroke="#c3d3e6" stroke-width="2.4"/>
+    <path d="M20 38h13" stroke="#c3d3e6" stroke-width="2.4"/>
+    <path d="M20 44h9" stroke="#cfdeef" stroke-width="2.2"/>
+  </g>
+  <g fill="#f0a94f">
+    <path d="M45 17.5c.5 3.1 1.4 4 4.5 4.5-3.1.5-4 1.4-4.5 4.5-.5-3.1-1.4-4-4.5-4.5 3.1-.5 4-1.4 4.5-4.5Z"/>
+    <circle cx="50.5" cy="14.5" r="1.4"/>
+    <circle cx="41" cy="13" r="1.1"/>
+  </g>
+</svg>
