@@ -160,6 +160,19 @@
       },
       "versions": [
         {
+          "version": "0.3.2",
+          "publishTimestamp": 1793426735,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/hongxsen/dsh_plugins",
+            "commit": "a0251a247d57b3f1855adfdf6cfa658291233097",
+            "path": "plugins/skills-market"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-0 <0.3.0"
+          }
+        },
+        {
           "version": "0.3.1",
           "publishTimestamp": 1793425731,
           "source": {
