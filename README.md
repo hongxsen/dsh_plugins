@@ -15,7 +15,7 @@ https://hongxsen.github.io/dsh_plugins/index.json
 | 插件 | 说明 | 版本 | 目录 |
 |---|---|---|---|
 | **壁纸** `@hongxsen/dsh-wallpaper` | 在设置里切换 5 张内置壁纸，或用你自己的图片；界面变成磨砂玻璃让壁纸透出来，深浅色自动换画 | 0.2.0 | [plugins/wallpaper](plugins/wallpaper) |
-| **技能市场** `@hongxsen/dsh-skills-market` | 从 skills.sh 或自定义 JSON/skills.sh 市场源搜索技能，也可从本机目录/集合目录安装；预览全部文件后安装到 `~/.dsh/skills`，并管理 `~/.dsh` 与 `~/.agents` 的已安装技能 | 0.3.1 | [plugins/skills-market](plugins/skills-market) |
+| **技能市场** `@hongxsen/dsh-skills-market` | 从 skills.sh 或自定义 JSON/skills.sh 市场源搜索技能，也可从本机目录/集合目录安装；预览全部文件后安装到 `~/.dsh/skills`，并管理 `~/.dsh` 与 `~/.agents` 的已安装技能 | 0.3.2 | [plugins/skills-market](plugins/skills-market) |
 | **MCP 市场** `@hongxsen/dsh-mcp-market` | 从官方 MCP Registry 或自定义 JSON/Registry 市场源搜索服务器，也可手动添加本地 stdio 服务器；按需填写密钥后写入当前配置，并管理启停 | 0.3.0 | [plugins/mcp-market](plugins/mcp-market) |
 | **人机双写** `@hongxsen/dsh-co-write` | 在对话或工作区文件里选中文字，就地评论；编号引用随下一条消息提交 | 0.1.0 | [plugins/co-write](plugins/co-write) |
 
@@ -46,7 +46,7 @@ dsh plugin --profile desktop add \
 
 # 两个市场插件
 dsh plugin --profile desktop add \
-  "git+https://github.com/hongxsen/dsh_plugins.git#skills-market-v0.3.1&path:/plugins/skills-market"
+  "git+https://github.com/hongxsen/dsh_plugins.git#skills-market-v0.3.2&path:/plugins/skills-market"
 dsh plugin --profile desktop add \
   "git+https://github.com/hongxsen/dsh_plugins.git#mcp-market-v0.3.0&path:/plugins/mcp-market"
 ```

@@ -339,20 +339,46 @@ export function debounce(fn, wait) {
 }
 
 /**
+ * Keep safe, printable fields from an API error's details object.
+ * @param details - candidate details value from the response body.
+ * @returns a shallow copy holding at most 8 primitive values, or `undefined`.
+ */
+function sanitizeErrorDetails(details) {
+  if (details === null || typeof details !== 'object' || Array.isArray(details)) return undefined
+  const safe = {}
+  for (const [key, value] of Object.entries(details)) {
+    if (Object.keys(safe).length >= 8) break
+    if (typeof value === 'string') safe[key] = value.slice(0, 200)
+    else if (typeof value === 'number' && Number.isFinite(value)) safe[key] = value
+    else if (typeof value === 'boolean') safe[key] = value
+  }
+  return Object.keys(safe).length > 0 ? safe : undefined
+}
+
+/**
  * Turn an API error payload into a thrown error carrying the stable code.
+ * The short server message stays on the error for diagnostics; the UI only
+ * renders the code sentence plus whitelisted `details` fields.
  * @param payload - parsed JSON body.
  * @param status - HTTP status.
  * @returns the error.
  */
 export function errorFromPayload(payload, status) {
-  const code = payload !== null && typeof payload === 'object'
+  const body = payload !== null && typeof payload === 'object'
     && payload.error !== null && typeof payload.error === 'object'
-    && typeof payload.error.code === 'string'
-    ? payload.error.code
-    : `http/${status}`
+    ? payload.error
+    : null
+  const code = body !== null && typeof body.code === 'string' ? body.code : `http/${status}`
   const error = new Error('skills-market request failed')
   error.code = code
   error.status = status
+  if (body !== null) {
+    if (typeof body.message === 'string' && body.message.trim() !== '') {
+      error.message = body.message.slice(0, 200)
+    }
+    const details = sanitizeErrorDetails(body.details)
+    if (details !== undefined) error.details = details
+  }
   return error
 }
 

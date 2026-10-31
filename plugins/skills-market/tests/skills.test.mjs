@@ -267,7 +267,7 @@ test('health reports the skills root and version', async () => {
   const service = createSkillsMarket({ dshHome: HOME, now: () => NOW })
   const health = await service.health()
   assert.equal(health.ok, true)
-  assert.equal(health.version, '0.3.1')
+  assert.equal(health.version, '0.3.2')
   assert.match(health.root, /skills$/u)
 })
 

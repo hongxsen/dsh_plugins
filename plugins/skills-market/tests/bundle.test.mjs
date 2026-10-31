@@ -173,7 +173,7 @@ function renderPage(queue = []) {
   const { ctx, registrations } = createContext()
   exports.apply(ctx)
   const page = registrations.find((entry) => entry.options.name === 'main').component
-  const t = (key) => key
+  const t = (key, params) => (params === undefined ? key : `${key}:${JSON.stringify(params)}`)
   const tree = page({ t })
   return { tree, react, t }
 }
@@ -291,4 +291,28 @@ test('a local collection renders a picker instead of an install preview', () => 
   assert.ok(dialogTree.some((element) => element.props.className === 'dshsm-localCollectionItem'))
   assert.ok(dialogTree.some((element) => element.children.includes('localCollectionTitle')))
   assert.equal(dialogTree.some((element) => element.props.className === 'dshsm-previewSummary'), false)
+})
+
+test('preview error bodies append sanitized error details', () => {
+  const queue = []
+  queue[15] = {
+    status: 'error',
+    entry: { kind: 'local', path: '~/.claude/skills/report-knowledge-extractor' },
+    armed: false,
+    error: {
+      code: 'skills/invalid-skill',
+      details: { path: 'venv/bin/python', kind: 'symlink' },
+    },
+    data: null,
+  }
+  const { tree } = renderPage(queue)
+  const dialog = flattenElements(tree).find((element) => typeof element.type === 'function' && element.props.state !== undefined)
+  assert.notEqual(dialog, undefined)
+  const dialogTree = flattenElements(dialog.type(dialog.props))
+  const errorState = dialogTree.find((element) => typeof element.type === 'function'
+    && typeof element.props.body === 'string')
+  assert.notEqual(errorState, undefined)
+  assert.ok(errorState.props.body.includes('errorInvalidSkill'), 'the code sentence leads the body')
+  assert.ok(errorState.props.body.includes('errorDetailSymlink:{"path":"venv/bin/python"}'),
+    `the symlink detail is appended: ${errorState.props.body}`)
 })

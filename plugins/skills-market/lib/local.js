@@ -47,7 +47,7 @@ export async function previewLocalSkill({ dshHome, inputPath, now = Date.now() }
   try {
     const direct = await lstat(expanded)
     if (direct.isSymbolicLink()) {
-      throw new MarketError('skills/invalid-skill', 'Symbolic links are not installable', { field: 'path' })
+      throw new MarketError('skills/invalid-skill', 'Symbolic links are not installable', { kind: 'symlink' })
     }
     sourcePath = await realpath(expanded)
   } catch (error) {
@@ -223,14 +223,20 @@ async function readLocalTree(root) {
       const full = join(directory, entry.name)
       const info = await lstat(full)
       if (info.isSymbolicLink()) {
-        throw new MarketError('skills/invalid-skill', 'Symbolic links are not installable', { path: relative })
+        throw new MarketError('skills/invalid-skill', 'Symbolic links are not installable', {
+          path: relative,
+          kind: 'symlink',
+        })
       }
       if (info.isDirectory()) {
         await walk(full, relative)
         continue
       }
       if (!info.isFile()) {
-        throw new MarketError('skills/invalid-skill', 'Unsupported file type in the local skill', { path: relative })
+        throw new MarketError('skills/invalid-skill', 'Unsupported file type in the local skill', {
+          path: relative,
+          kind: 'unsupported',
+        })
       }
       if (info.size > MAX_FILE_BYTES) {
         throw new MarketError('skills/too-large', 'A local skill file exceeds the per-file limit', {

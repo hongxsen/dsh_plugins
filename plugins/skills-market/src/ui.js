@@ -13,7 +13,7 @@ const PANEL_ID = 'skills-market'
 /** Locale namespace owned by this plugin. */
 const MARKET_NS = 'skillsMarket'
 
-/** HTTP/API codes mapped to dictionary keys; server messages are never shown. */
+/** HTTP/API codes mapped to dictionary keys; server messages are never shown, only sanitized `details` fields are. */
 const ERROR_KEYS = Object.freeze({
   'skills/invalid-query': 'errorInvalidQuery',
   'skills/fetch-failed': 'errorFetch',
@@ -1073,15 +1073,63 @@ const LAZY_DESCRIPTIONS = 12
 const h = React.createElement
 
 /**
- * Translate one thrown API error.
+ * Build localized detail suffixes for one thrown error's `details` object.
+ * The Host only exposes short primitive fields; each known field maps to one
+ * sentence so the user can see which path or limit failed instead of a bare
+ * error code.
+ * @param t - translate seat.
+ * @param details - sanitized details from `errorFromPayload`.
+ * @returns the suffix strings, possibly empty.
+ */
+function errorDetailParts(t, details) {
+  if (details === null || typeof details !== 'object') return []
+  const parts = []
+  if (details.kind === 'symlink') {
+    if (typeof details.path === 'string' && details.path !== '') {
+      parts.push(t('errorDetailSymlink', { path: details.path }))
+    } else {
+      parts.push(t('errorDetailSymlinkRoot'))
+    }
+  } else if (details.kind === 'unsupported' && typeof details.path === 'string' && details.path !== '') {
+    parts.push(t('errorDetailUnsupported', { path: details.path }))
+  } else if (typeof details.path === 'string' && details.path !== '') {
+    parts.push(t('errorDetailPath', { path: details.path }))
+  }
+  if (typeof details.files === 'number' && typeof details.maxFiles === 'number') {
+    parts.push(t('errorDetailFiles', { files: details.files, maxFiles: details.maxFiles }))
+  }
+  if (typeof details.totalBytes === 'number' && typeof details.maxTotalBytes === 'number') {
+    parts.push(t('errorDetailBytes', { size: formatBytes(details.totalBytes), max: formatBytes(details.maxTotalBytes) }))
+  }
+  if (typeof details.maxBytes === 'number') {
+    parts.push(t('errorDetailMaxBytes', { max: formatBytes(details.maxBytes) }))
+  }
+  if (typeof details.field === 'string' && details.field !== '') {
+    parts.push(t('errorDetailField', { field: details.field }))
+  }
+  if (typeof details.name === 'string' && details.name !== '') {
+    parts.push(t('errorDetailName', { name: details.name }))
+  }
+  if (typeof details.limit === 'number') {
+    parts.push(t('errorDetailLimit', { limit: details.limit }))
+  }
+  return parts
+}
+
+/**
+ * Translate one thrown API error, appending sanitized `details` context so
+ * failures such as a rejected symlink name the offending path.
  * @param t - translate seat.
  * @param error - thrown error with a `code`.
- * @returns the localized sentence.
+ * @returns the localized sentence with optional detail suffixes.
  */
 function describeError(t, error) {
   const code = error !== null && typeof error === 'object' ? error.code : undefined
   const key = typeof code === 'string' ? ERROR_KEYS[code] : undefined
-  return key === undefined ? t('errorUnknown') : t(key)
+  const sentence = key === undefined ? t('errorUnknown') : t(key)
+  const details = error !== null && typeof error === 'object' ? error.details : undefined
+  const parts = errorDetailParts(t, details)
+  return parts.length === 0 ? sentence : `${sentence} ${parts.join(' · ')}`
 }
 
 /** Join class names, dropping falsy entries. */

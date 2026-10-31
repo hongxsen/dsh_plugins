@@ -219,7 +219,10 @@ export function collectSkillFiles(tree, selection, limits = {}) {
 /** Refuse a git symlink blob. */
 function rejectSymlink(entry) {
   if (entry.mode === '120000') {
-    throw new MarketError('skills/invalid-skill', 'Symbolic links are not installable', { path: String(entry.path).slice(0, 200) })
+    throw new MarketError('skills/invalid-skill', 'Symbolic links are not installable', {
+      path: String(entry.path).slice(0, 200),
+      kind: 'symlink',
+    })
   }
 }
 

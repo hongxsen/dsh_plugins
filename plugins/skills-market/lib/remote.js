@@ -20,7 +20,7 @@ import {
 import { validateSkillId, validateSource } from './validate.js'
 
 /** User-Agent GitHub and skills.sh both accept. */
-export const USER_AGENT = 'dsh-skills-market/0.3.1'
+export const USER_AGENT = 'dsh-skills-market/0.3.2'
 
 /** Default cap for JSON/HTML responses. */
 const DEFAULT_MAX_BYTES = 8 * 1024 * 1024

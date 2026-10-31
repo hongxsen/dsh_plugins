@@ -75,7 +75,8 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 - 支持绝对路径、`~/` 和 `file://`；相对路径会被拒绝；
 - 预览阶段会校验 frontmatter、列出全部文件并执行与远程安装相同的安全扫描，确认后才写入 `~/.dsh/skills/<name>`；
 - 原目录只读，不会被移动、复制后再删除或修改；符号链接、特殊文件和 `..` 路径会被拒绝；
-- 目录最多 200 个文件 / 8 MiB，单文件 4 MiB；`SKILL.md` 文件会规范化为 `<name>/SKILL.md`。
+- 目录最多 200 个文件 / 8 MiB，单文件 4 MiB；`SKILL.md` 文件会规范化为 `<name>/SKILL.md`；
+- 预览失败时错误文案会带上具体原因，例如哪个路径是符号链接、文件数/大小超过哪个上限，方便清理目录后重试。
 
 本地安装同样使用 Host 侧的 staging token 和预览确认，浏览器不能直接指定目标目录或绕过扫描。
 

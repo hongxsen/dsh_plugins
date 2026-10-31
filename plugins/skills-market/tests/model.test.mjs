@@ -144,6 +144,34 @@ test('errorFromPayload keeps the stable code and status', () => {
   assert.equal(errorFromPayload(null, 502).code, 'http/502')
 })
 
+test('errorFromPayload preserves sanitized details and message', () => {
+  const error = errorFromPayload({
+    error: {
+      code: 'skills/invalid-skill',
+      message: 'Symbolic links are not installable',
+      details: {
+        path: 'venv/bin/python',
+        kind: 'symlink',
+        files: 3200,
+        nested: { deep: true },
+        drop: undefined,
+      },
+    },
+  }, 400)
+  assert.equal(error.code, 'skills/invalid-skill')
+  assert.equal(error.status, 400)
+  assert.equal(error.message, 'Symbolic links are not installable')
+  assert.deepEqual(error.details, { path: 'venv/bin/python', kind: 'symlink', files: 3200 })
+  assert.equal(errorFromPayload({ error: { code: 'x', details: 'nope' } }, 400).details, undefined)
+  assert.equal(errorFromPayload({ error: { code: 'x', details: {} } }, 400).details, undefined)
+  assert.equal(errorFromPayload({ error: { code: 'x', details: { junk: null } } }, 400).details, undefined)
+  assert.equal(errorFromPayload({ error: { code: 'x', message: '   ' } }, 400).message, 'skills-market request failed')
+  const clipped = errorFromPayload({
+    error: { code: 'x', details: { path: 'p'.repeat(400) } },
+  }, 400)
+  assert.equal(clipped.details.path.length, 200)
+})
+
 test('createApiClient builds same-origin requests with the spec timeouts', async () => {
   const calls = []
   const api = createApiClient('/dsh-skills-market', {

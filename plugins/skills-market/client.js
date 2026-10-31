@@ -90,6 +90,16 @@ window.__ModuleLoader__.load({
         "errorStagingExpired": "预览已过期，请重新预览。",
         "errorInstall": "安装失败，请重试。",
         "errorUnknown": "操作失败，请重试。",
+        "errorDetailSymlink": "包含符号链接：{path}",
+        "errorDetailSymlinkRoot": "路径本身是符号链接",
+        "errorDetailUnsupported": "不支持的文件类型：{path}",
+        "errorDetailPath": "位置：{path}",
+        "errorDetailFiles": "文件数 {files}/{maxFiles}",
+        "errorDetailBytes": "总大小 {size}/{max}",
+        "errorDetailMaxBytes": "单文件上限 {max}",
+        "errorDetailField": "字段：{field}",
+        "errorDetailName": "名称：{name}",
+        "errorDetailLimit": "上限 {limit}",
         "cachedLabel": "缓存结果",
         "warningQuery": "技能目录没有接受这个关键词，先显示热门技能。",
         "previewMoreFiles": "还有 {count} 个文件未列出。",
@@ -217,6 +227,16 @@ window.__ModuleLoader__.load({
         "errorStagingExpired": "The preview expired. Build a new preview.",
         "errorInstall": "The install failed. Try again.",
         "errorUnknown": "The operation failed. Try again.",
+        "errorDetailSymlink": "contains a symbolic link: {path}",
+        "errorDetailSymlinkRoot": "the path itself is a symbolic link",
+        "errorDetailUnsupported": "unsupported file type: {path}",
+        "errorDetailPath": "at: {path}",
+        "errorDetailFiles": "files {files}/{maxFiles}",
+        "errorDetailBytes": "size {size}/{max}",
+        "errorDetailMaxBytes": "per-file limit {max}",
+        "errorDetailField": "field: {field}",
+        "errorDetailName": "name: {name}",
+        "errorDetailLimit": "limit {limit}",
         "cachedLabel": "Cached",
         "warningQuery": "The catalog did not accept that query, so popular skills are shown instead.",
         "previewMoreFiles": "{count} more files are not listed.",
@@ -611,20 +631,46 @@ function debounce(fn, wait) {
 }
 
 /**
+ * Keep safe, printable fields from an API error's details object.
+ * @param details - candidate details value from the response body.
+ * @returns a shallow copy holding at most 8 primitive values, or `undefined`.
+ */
+function sanitizeErrorDetails(details) {
+  if (details === null || typeof details !== 'object' || Array.isArray(details)) return undefined
+  const safe = {}
+  for (const [key, value] of Object.entries(details)) {
+    if (Object.keys(safe).length >= 8) break
+    if (typeof value === 'string') safe[key] = value.slice(0, 200)
+    else if (typeof value === 'number' && Number.isFinite(value)) safe[key] = value
+    else if (typeof value === 'boolean') safe[key] = value
+  }
+  return Object.keys(safe).length > 0 ? safe : undefined
+}
+
+/**
  * Turn an API error payload into a thrown error carrying the stable code.
+ * The short server message stays on the error for diagnostics; the UI only
+ * renders the code sentence plus whitelisted `details` fields.
  * @param payload - parsed JSON body.
  * @param status - HTTP status.
  * @returns the error.
  */
 function errorFromPayload(payload, status) {
-  const code = payload !== null && typeof payload === 'object'
+  const body = payload !== null && typeof payload === 'object'
     && payload.error !== null && typeof payload.error === 'object'
-    && typeof payload.error.code === 'string'
-    ? payload.error.code
-    : `http/${status}`
+    ? payload.error
+    : null
+  const code = body !== null && typeof body.code === 'string' ? body.code : `http/${status}`
   const error = new Error('skills-market request failed')
   error.code = code
   error.status = status
+  if (body !== null) {
+    if (typeof body.message === 'string' && body.message.trim() !== '') {
+      error.message = body.message.slice(0, 200)
+    }
+    const details = sanitizeErrorDetails(body.details)
+    if (details !== undefined) error.details = details
+  }
   return error
 }
 
@@ -732,7 +778,7 @@ const PANEL_ID = 'skills-market'
 /** Locale namespace owned by this plugin. */
 const MARKET_NS = 'skillsMarket'
 
-/** HTTP/API codes mapped to dictionary keys; server messages are never shown. */
+/** HTTP/API codes mapped to dictionary keys; server messages are never shown, only sanitized `details` fields are. */
 const ERROR_KEYS = Object.freeze({
   'skills/invalid-query': 'errorInvalidQuery',
   'skills/fetch-failed': 'errorFetch',
@@ -1792,15 +1838,63 @@ const LAZY_DESCRIPTIONS = 12
 const h = React.createElement
 
 /**
- * Translate one thrown API error.
+ * Build localized detail suffixes for one thrown error's `details` object.
+ * The Host only exposes short primitive fields; each known field maps to one
+ * sentence so the user can see which path or limit failed instead of a bare
+ * error code.
+ * @param t - translate seat.
+ * @param details - sanitized details from `errorFromPayload`.
+ * @returns the suffix strings, possibly empty.
+ */
+function errorDetailParts(t, details) {
+  if (details === null || typeof details !== 'object') return []
+  const parts = []
+  if (details.kind === 'symlink') {
+    if (typeof details.path === 'string' && details.path !== '') {
+      parts.push(t('errorDetailSymlink', { path: details.path }))
+    } else {
+      parts.push(t('errorDetailSymlinkRoot'))
+    }
+  } else if (details.kind === 'unsupported' && typeof details.path === 'string' && details.path !== '') {
+    parts.push(t('errorDetailUnsupported', { path: details.path }))
+  } else if (typeof details.path === 'string' && details.path !== '') {
+    parts.push(t('errorDetailPath', { path: details.path }))
+  }
+  if (typeof details.files === 'number' && typeof details.maxFiles === 'number') {
+    parts.push(t('errorDetailFiles', { files: details.files, maxFiles: details.maxFiles }))
+  }
+  if (typeof details.totalBytes === 'number' && typeof details.maxTotalBytes === 'number') {
+    parts.push(t('errorDetailBytes', { size: formatBytes(details.totalBytes), max: formatBytes(details.maxTotalBytes) }))
+  }
+  if (typeof details.maxBytes === 'number') {
+    parts.push(t('errorDetailMaxBytes', { max: formatBytes(details.maxBytes) }))
+  }
+  if (typeof details.field === 'string' && details.field !== '') {
+    parts.push(t('errorDetailField', { field: details.field }))
+  }
+  if (typeof details.name === 'string' && details.name !== '') {
+    parts.push(t('errorDetailName', { name: details.name }))
+  }
+  if (typeof details.limit === 'number') {
+    parts.push(t('errorDetailLimit', { limit: details.limit }))
+  }
+  return parts
+}
+
+/**
+ * Translate one thrown API error, appending sanitized `details` context so
+ * failures such as a rejected symlink name the offending path.
  * @param t - translate seat.
  * @param error - thrown error with a `code`.
- * @returns the localized sentence.
+ * @returns the localized sentence with optional detail suffixes.
  */
 function describeError(t, error) {
   const code = error !== null && typeof error === 'object' ? error.code : undefined
   const key = typeof code === 'string' ? ERROR_KEYS[code] : undefined
-  return key === undefined ? t('errorUnknown') : t(key)
+  const sentence = key === undefined ? t('errorUnknown') : t(key)
+  const details = error !== null && typeof error === 'object' ? error.details : undefined
+  const parts = errorDetailParts(t, details)
+  return parts.length === 0 ? sentence : `${sentence} ${parts.join(' · ')}`
 }
 
 /** Join class names, dropping falsy entries. */
