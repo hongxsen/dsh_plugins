@@ -112,21 +112,31 @@ window.__ModuleLoader__.load({
         "sourceLoadFailed": "市场源加载失败",
         "sourceTitleLabel": "名称",
         "sourceTitlePlaceholder": "例如：团队技能库",
-        "sourceUrlLabel": "地址",
-        "sourceUrlPlaceholder": "https://example.com/skills-index.json",
+        "sourceUrlLabel": "URL 或本地路径",
+        "sourceUrlPlaceholder": "https://example.com/skills-index.json 或 ~/skills-index.json",
         "sourceKindLabel": "类型",
         "sourceKindSkillsSh": "skills.sh 兼容",
         "sourceKindIndex": "JSON 索引",
         "sourceAdd": "添加",
         "sourceAdding": "正在添加…",
         "sourceBaseNote": "兼容 skills.sh 的地址会使用 /api/search 和 /<owner>/<repo>/<skill> 路径。",
-        "sourceIndexNote": "JSON 索引需要 format: 1；技能仍从 GitHub 仓库下载并经过预览与安全扫描。",
+        "sourceIndexNote": "JSON 索引必须声明 format: 1。只有 JSON 索引类型支持本地路径（绝对路径、~/... 或 file://）。技能仍会从 GitHub 下载并经过预览和安全扫描。",
         "errorSourceInvalid": "市场源参数无效。",
         "errorSourceLimit": "市场源数量已达上限。",
         "errorSourceNotFound": "找不到这个市场源。",
         "errorSourceBuiltin": "内置市场源不能移除。",
         "errorSourceFetch": "市场源无法访问，请检查地址或网络。",
-        "errorSourceInvalidIndex": "JSON 索引格式不正确，请检查 format 和字段。"
+        "errorSourceInvalidIndex": "JSON 索引格式不正确，请检查 format 和字段。",
+        "localInstall": "本地安装",
+        "localDialogTitle": "从本地安装技能",
+        "localDialogSubtitle": "填写包含 SKILL.md 的目录，或直接填写一个 SKILL.md 文件。",
+        "localPathLabel": "本地路径",
+        "localPathPlaceholder": "~/work/my-skill 或 /Users/you/skills/my-skill",
+        "localPathNote": "只会读取该目录，不会移动或修改原文件；符号链接和不支持的文件会被拒绝。",
+        "localPreview": "预览本地技能",
+        "localPreviewBusy": "正在读取…",
+        "previewLocalPath": "本地路径",
+        "previewLocalSource": "本地目录"
       },
       "en": {
         "panel": "Skills",
@@ -226,21 +236,31 @@ window.__ModuleLoader__.load({
         "sourceLoadFailed": "Could not load market sources",
         "sourceTitleLabel": "Name",
         "sourceTitlePlaceholder": "For example: Team skills",
-        "sourceUrlLabel": "URL",
-        "sourceUrlPlaceholder": "https://example.com/skills-index.json",
+        "sourceUrlLabel": "URL or local path",
+        "sourceUrlPlaceholder": "https://example.com/skills-index.json or ~/skills-index.json",
         "sourceKindLabel": "Type",
         "sourceKindSkillsSh": "skills.sh compatible",
         "sourceKindIndex": "JSON index",
         "sourceAdd": "Add",
         "sourceAdding": "Adding…",
         "sourceBaseNote": "A skills.sh-compatible base uses /api/search and /<owner>/<repo>/<skill> paths.",
-        "sourceIndexNote": "A JSON index must declare format: 1. Skills are still downloaded from GitHub and go through preview and the safety scan.",
+        "sourceIndexNote": "A JSON index must declare format: 1. Only JSON index sources accept a local path (absolute, ~/..., or file://). Skills are still downloaded from GitHub and go through preview and the safety scan.",
         "errorSourceInvalid": "A market source value is invalid.",
         "errorSourceLimit": "The market source limit has been reached.",
         "errorSourceNotFound": "That market source was not found.",
         "errorSourceBuiltin": "The built-in market source cannot be removed.",
         "errorSourceFetch": "The market source is unreachable. Check the URL or network.",
-        "errorSourceInvalidIndex": "The JSON index format is invalid. Check format and fields."
+        "errorSourceInvalidIndex": "The JSON index format is invalid. Check format and fields.",
+        "localInstall": "Install from folder",
+        "localDialogTitle": "Install a local skill",
+        "localDialogSubtitle": "Point at a directory that contains SKILL.md, or at a single SKILL.md file.",
+        "localPathLabel": "Local path",
+        "localPathPlaceholder": "~/work/my-skill or /Users/you/skills/my-skill",
+        "localPathNote": "The folder is read only; it is never moved or modified. Symlinks and unsupported files are rejected.",
+        "localPreview": "Preview local skill",
+        "localPreviewBusy": "Reading…",
+        "previewLocalPath": "Local path",
+        "previewLocalSource": "Local folder"
       }
     }
 
@@ -666,6 +686,7 @@ function createApiClient(base = API_BASE, options = {}) {
       timeoutMs: TIMEOUTS.detail,
     }),
     preview: (input) => request('/api/preview', { method: 'POST', body: input, timeoutMs: TIMEOUTS.preview }),
+    previewLocal: (path) => request('/api/local/preview', { method: 'POST', body: { path }, timeoutMs: TIMEOUTS.preview }),
     install: (input) => request('/api/install', { method: 'POST', body: input, timeoutMs: TIMEOUTS.mutation }),
     installed: () => request('/api/installed', { timeoutMs: TIMEOUTS.mutation }),
     remove: (name) => request('/api/remove', { method: 'POST', body: { name }, timeoutMs: TIMEOUTS.mutation }),
@@ -2123,7 +2144,7 @@ function SourceDialog({
       h('label', { className: 'dshsm-field' },
         h('span', { className: 'dshsm-fieldLabel' }, t('sourceUrlLabel')),
         h('input', {
-          type: 'url',
+          type: 'text',
           value: form.url,
           maxLength: 2048,
           placeholder: t('sourceUrlPlaceholder'),
@@ -2159,6 +2180,87 @@ function KeyValue({ label, children }) {
   return h(React.Fragment, null,
     h('div', { className: 'dshsm-kvLabel' }, label),
     h('div', { className: 'dshsm-kvValue' }, children),
+  )
+}
+
+/**
+ * Local skill path dialog.
+ * @param props - `{ t, path, error, busy, onClose, onChange, onSubmit }`.
+ */
+function LocalInstallDialog({ t, path, error, busy, onClose, onChange, onSubmit }) {
+  const inputRef = React.useRef(null)
+  React.useEffect(() => {
+    const previous = typeof document === 'undefined' ? null : document.activeElement
+    if (inputRef.current !== null && typeof inputRef.current.focus === 'function') inputRef.current.focus()
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape' || busy) return
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+      if (previous !== null && typeof previous.focus === 'function') previous.focus()
+    }
+  }, [busy, onClose])
+
+  return h('div', {
+    className: 'dshsm-overlay',
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget && !busy) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshsm-dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-label': t('localDialogTitle'),
+    tabIndex: -1,
+  },
+  h('div', { className: 'dshsm-dialogHead' },
+    h('div', { className: 'dshsm-dialogTitleWrap' },
+      h('h2', { className: 'dshsm-dialogTitle' }, t('localDialogTitle')),
+      h('div', { className: 'dshsm-dialogSubtitle' }, t('localDialogSubtitle')),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshsm-iconBtn',
+      'aria-label': t('sourceClose'),
+      onClick: onClose,
+      disabled: busy,
+    }, h(CloseIcon, { size: 16 })),
+  ),
+  h('form', { className: 'dshsm-dialogBody', onSubmit },
+    h('label', { className: 'dshsm-field' },
+      h('span', { className: 'dshsm-fieldLabel' }, t('localPathLabel')),
+      h('input', {
+        ref: inputRef,
+        type: 'text',
+        value: path,
+        placeholder: t('localPathPlaceholder'),
+        autoComplete: 'off',
+        spellCheck: false,
+        maxLength: 2048,
+        onChange: (event) => onChange(event.currentTarget.value),
+      }),
+    ),
+    h('p', { className: 'dshsm-note' }, t('localPathNote')),
+    error === null ? null : h('div', { className: 'dshsm-formError', role: 'alert' }, describeError(t, error)),
+    h('div', { className: 'dshsm-formActions' },
+      h('button', {
+        type: 'button',
+        className: 'dshsm-btn',
+        onClick: onClose,
+        disabled: busy,
+      }, t('previewCancel')),
+      h('button', {
+        type: 'submit',
+        className: 'dshsm-btn dshsm-btnPrimary',
+        disabled: busy,
+      }, busy ? t('localPreviewBusy') : t('localPreview')),
+    ),
+  ),
+  ),
   )
 }
 
@@ -2212,7 +2314,7 @@ function PreviewDialog({ t, state, installing, onClose, onRetry, onInstall }) {
   h('div', { className: 'dshsm-dialogHead' },
     h('div', { className: 'dshsm-dialogTitleWrap' },
       h('h2', { className: 'dshsm-dialogTitle' }, t('previewTitle')),
-      data === null ? null : h('div', { className: 'dshsm-dialogSubtitle' }, `${data.name} · ${data.source}`),
+      data === null ? null : h('div', { className: 'dshsm-dialogSubtitle' }, `${data.name} · ${data.kind === 'local' ? t('previewLocalSource') : data.source}`),
     ),
     h('button', {
       type: 'button',
@@ -2247,22 +2349,26 @@ function PreviewDialog({ t, state, installing, onClose, onRetry, onInstall }) {
           h(Monogram, { name: data.name, size: 'lg' }),
           h('div', { className: 'dshsm-previewSummaryMain' },
             h('div', { className: 'dshsm-previewName' }, data.name),
-            h('div', { className: 'dshsm-previewSource' }, data.source),
+            h('div', { className: 'dshsm-previewSource' }, data.kind === 'local' ? t('previewLocalSource') : data.source),
             data.description !== undefined && data.description !== ''
               ? h('p', { className: 'dshsm-previewDesc' }, summarizeDescription(data.description, 280))
               : null,
           ),
         ),
         h('div', { className: 'dshsm-kv' },
-          h(KeyValue, { label: t('previewRepo') },
-            h('a', {
-              href: safeHttpsUrl(data.repo) ?? safeHttpsUrl(repoUrl(data.source)) ?? '#',
-              target: '_blank',
-              rel: 'noreferrer noopener',
-            }, data.source),
-          ),
-          h(KeyValue, { label: t('previewBranch') }, data.branch),
-          h(KeyValue, { label: t('previewPath') }, data.path),
+          data.kind === 'local'
+            ? h(KeyValue, { label: t('previewLocalPath') }, data.localPath)
+            : h(React.Fragment, null,
+              h(KeyValue, { label: t('previewRepo') },
+                h('a', {
+                  href: safeHttpsUrl(data.repo) ?? safeHttpsUrl(repoUrl(data.source)) ?? '#',
+                  target: '_blank',
+                  rel: 'noreferrer noopener',
+                }, data.source),
+              ),
+              h(KeyValue, { label: t('previewBranch') }, data.branch),
+              h(KeyValue, { label: t('previewPath') }, data.path),
+            ),
           h(KeyValue, { label: t('previewFiles') }, t('fileCount', { count: files.length })),
           h(KeyValue, { label: t('previewSize') }, formatBytes(data.totalBytes)),
           h(KeyValue, { label: t('previewTarget') },
@@ -2373,6 +2479,10 @@ function createMarketPage({ api, fallbackT, getLocale }) {
     const [sourceForm, setSourceForm] = React.useState({ kind: 'skills-sh', title: '', url: '' })
     const [sourceFormError, setSourceFormError] = React.useState(null)
     const [sourceBusy, setSourceBusy] = React.useState(false)
+    const [localOpen, setLocalOpen] = React.useState(false)
+    const [localPath, setLocalPath] = React.useState('')
+    const [localError, setLocalError] = React.useState(null)
+    const [localBusy, setLocalBusy] = React.useState(false)
     const [preview, setPreview] = React.useState(null)
     const [installing, setInstalling] = React.useState(false)
     const [removal, setRemoval] = React.useState({ name: null, armed: null, busy: false })
@@ -2697,6 +2807,36 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       }
     }
 
+    const openLocalPreview = async (path) => {
+      previewSeq.current += 1
+      const seq = previewSeq.current
+      const entry = { kind: 'local', path }
+      setPreview({ status: 'loading', entry, data: null, error: null, armed: false })
+      try {
+        const payload = await api.previewLocal(path)
+        if (!mounted.current || previewSeq.current !== seq) return
+        setPreview({ status: 'ready', entry, data: payload, error: null, armed: false })
+      } catch (error) {
+        if (!mounted.current || previewSeq.current !== seq) return
+        setPreview({ status: 'error', entry, data: null, error, armed: false })
+      }
+    }
+
+    const submitLocal = async (event) => {
+      event.preventDefault()
+      if (localBusy) return
+      const path = localPath.trim()
+      if (path === '') return
+      setLocalBusy(true)
+      setLocalError(null)
+      setLocalOpen(false)
+      try {
+        await openLocalPreview(path)
+      } finally {
+        if (mounted.current) setLocalBusy(false)
+      }
+    }
+
     const closePreview = React.useCallback(() => {
       if (installing) return
       previewSeq.current += 1
@@ -2816,6 +2956,11 @@ function createMarketPage({ api, fallbackT, getLocale }) {
               onClick: clearSearch,
             }, h(CloseIcon, { size: 13 })),
           ),
+          h('button', {
+            type: 'button',
+            className: 'dshsm-btn dshsm-btnSmall',
+            onClick: () => { setLocalError(null); setLocalOpen(true) },
+          }, t('localInstall')),
         ),
         h('div', {
           className: 'dshsm-progress',
@@ -3161,7 +3306,13 @@ function createMarketPage({ api, fallbackT, getLocale }) {
         state: preview,
         installing,
         onClose: closePreview,
-        onRetry: () => { void openPreview(preview.entry) },
+        onRetry: () => {
+          if (preview.entry !== null && preview.entry !== undefined && preview.entry.kind === 'local') {
+            void openLocalPreview(preview.entry.path)
+          } else {
+            void openPreview(preview.entry)
+          }
+        },
         onInstall: () => { void confirmInstall() },
       }),
       sourcesOpen
@@ -3177,6 +3328,17 @@ function createMarketPage({ api, fallbackT, getLocale }) {
           onSubmit: submitSource,
           onSelect: (id) => { void selectSource(id, true) },
           onRemove: (id) => { void removeSource(id) },
+        })
+        : null,
+      localOpen
+        ? h(LocalInstallDialog, {
+          t,
+          path: localPath,
+          error: localError,
+          busy: localBusy,
+          onClose: () => { if (!localBusy) setLocalOpen(false) },
+          onChange: (value) => { setLocalPath(value); setLocalError(null) },
+          onSubmit: submitLocal,
         })
         : null,
       toasts.length === 0 ? null : h('div', { className: 'dshsm-toasts', role: 'status', 'aria-live': 'polite' },

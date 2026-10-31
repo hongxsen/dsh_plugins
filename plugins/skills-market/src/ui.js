@@ -1432,7 +1432,7 @@ function SourceDialog({
       h('label', { className: 'dshsm-field' },
         h('span', { className: 'dshsm-fieldLabel' }, t('sourceUrlLabel')),
         h('input', {
-          type: 'url',
+          type: 'text',
           value: form.url,
           maxLength: 2048,
           placeholder: t('sourceUrlPlaceholder'),
@@ -1468,6 +1468,87 @@ function KeyValue({ label, children }) {
   return h(React.Fragment, null,
     h('div', { className: 'dshsm-kvLabel' }, label),
     h('div', { className: 'dshsm-kvValue' }, children),
+  )
+}
+
+/**
+ * Local skill path dialog.
+ * @param props - `{ t, path, error, busy, onClose, onChange, onSubmit }`.
+ */
+function LocalInstallDialog({ t, path, error, busy, onClose, onChange, onSubmit }) {
+  const inputRef = React.useRef(null)
+  React.useEffect(() => {
+    const previous = typeof document === 'undefined' ? null : document.activeElement
+    if (inputRef.current !== null && typeof inputRef.current.focus === 'function') inputRef.current.focus()
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape' || busy) return
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+      if (previous !== null && typeof previous.focus === 'function') previous.focus()
+    }
+  }, [busy, onClose])
+
+  return h('div', {
+    className: 'dshsm-overlay',
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget && !busy) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshsm-dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-label': t('localDialogTitle'),
+    tabIndex: -1,
+  },
+  h('div', { className: 'dshsm-dialogHead' },
+    h('div', { className: 'dshsm-dialogTitleWrap' },
+      h('h2', { className: 'dshsm-dialogTitle' }, t('localDialogTitle')),
+      h('div', { className: 'dshsm-dialogSubtitle' }, t('localDialogSubtitle')),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshsm-iconBtn',
+      'aria-label': t('sourceClose'),
+      onClick: onClose,
+      disabled: busy,
+    }, h(CloseIcon, { size: 16 })),
+  ),
+  h('form', { className: 'dshsm-dialogBody', onSubmit },
+    h('label', { className: 'dshsm-field' },
+      h('span', { className: 'dshsm-fieldLabel' }, t('localPathLabel')),
+      h('input', {
+        ref: inputRef,
+        type: 'text',
+        value: path,
+        placeholder: t('localPathPlaceholder'),
+        autoComplete: 'off',
+        spellCheck: false,
+        maxLength: 2048,
+        onChange: (event) => onChange(event.currentTarget.value),
+      }),
+    ),
+    h('p', { className: 'dshsm-note' }, t('localPathNote')),
+    error === null ? null : h('div', { className: 'dshsm-formError', role: 'alert' }, describeError(t, error)),
+    h('div', { className: 'dshsm-formActions' },
+      h('button', {
+        type: 'button',
+        className: 'dshsm-btn',
+        onClick: onClose,
+        disabled: busy,
+      }, t('previewCancel')),
+      h('button', {
+        type: 'submit',
+        className: 'dshsm-btn dshsm-btnPrimary',
+        disabled: busy,
+      }, busy ? t('localPreviewBusy') : t('localPreview')),
+    ),
+  ),
+  ),
   )
 }
 
@@ -1521,7 +1602,7 @@ function PreviewDialog({ t, state, installing, onClose, onRetry, onInstall }) {
   h('div', { className: 'dshsm-dialogHead' },
     h('div', { className: 'dshsm-dialogTitleWrap' },
       h('h2', { className: 'dshsm-dialogTitle' }, t('previewTitle')),
-      data === null ? null : h('div', { className: 'dshsm-dialogSubtitle' }, `${data.name} · ${data.source}`),
+      data === null ? null : h('div', { className: 'dshsm-dialogSubtitle' }, `${data.name} · ${data.kind === 'local' ? t('previewLocalSource') : data.source}`),
     ),
     h('button', {
       type: 'button',
@@ -1556,22 +1637,26 @@ function PreviewDialog({ t, state, installing, onClose, onRetry, onInstall }) {
           h(Monogram, { name: data.name, size: 'lg' }),
           h('div', { className: 'dshsm-previewSummaryMain' },
             h('div', { className: 'dshsm-previewName' }, data.name),
-            h('div', { className: 'dshsm-previewSource' }, data.source),
+            h('div', { className: 'dshsm-previewSource' }, data.kind === 'local' ? t('previewLocalSource') : data.source),
             data.description !== undefined && data.description !== ''
               ? h('p', { className: 'dshsm-previewDesc' }, summarizeDescription(data.description, 280))
               : null,
           ),
         ),
         h('div', { className: 'dshsm-kv' },
-          h(KeyValue, { label: t('previewRepo') },
-            h('a', {
-              href: safeHttpsUrl(data.repo) ?? safeHttpsUrl(repoUrl(data.source)) ?? '#',
-              target: '_blank',
-              rel: 'noreferrer noopener',
-            }, data.source),
-          ),
-          h(KeyValue, { label: t('previewBranch') }, data.branch),
-          h(KeyValue, { label: t('previewPath') }, data.path),
+          data.kind === 'local'
+            ? h(KeyValue, { label: t('previewLocalPath') }, data.localPath)
+            : h(React.Fragment, null,
+              h(KeyValue, { label: t('previewRepo') },
+                h('a', {
+                  href: safeHttpsUrl(data.repo) ?? safeHttpsUrl(repoUrl(data.source)) ?? '#',
+                  target: '_blank',
+                  rel: 'noreferrer noopener',
+                }, data.source),
+              ),
+              h(KeyValue, { label: t('previewBranch') }, data.branch),
+              h(KeyValue, { label: t('previewPath') }, data.path),
+            ),
           h(KeyValue, { label: t('previewFiles') }, t('fileCount', { count: files.length })),
           h(KeyValue, { label: t('previewSize') }, formatBytes(data.totalBytes)),
           h(KeyValue, { label: t('previewTarget') },
@@ -1682,6 +1767,10 @@ function createMarketPage({ api, fallbackT, getLocale }) {
     const [sourceForm, setSourceForm] = React.useState({ kind: 'skills-sh', title: '', url: '' })
     const [sourceFormError, setSourceFormError] = React.useState(null)
     const [sourceBusy, setSourceBusy] = React.useState(false)
+    const [localOpen, setLocalOpen] = React.useState(false)
+    const [localPath, setLocalPath] = React.useState('')
+    const [localError, setLocalError] = React.useState(null)
+    const [localBusy, setLocalBusy] = React.useState(false)
     const [preview, setPreview] = React.useState(null)
     const [installing, setInstalling] = React.useState(false)
     const [removal, setRemoval] = React.useState({ name: null, armed: null, busy: false })
@@ -2006,6 +2095,36 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       }
     }
 
+    const openLocalPreview = async (path) => {
+      previewSeq.current += 1
+      const seq = previewSeq.current
+      const entry = { kind: 'local', path }
+      setPreview({ status: 'loading', entry, data: null, error: null, armed: false })
+      try {
+        const payload = await api.previewLocal(path)
+        if (!mounted.current || previewSeq.current !== seq) return
+        setPreview({ status: 'ready', entry, data: payload, error: null, armed: false })
+      } catch (error) {
+        if (!mounted.current || previewSeq.current !== seq) return
+        setPreview({ status: 'error', entry, data: null, error, armed: false })
+      }
+    }
+
+    const submitLocal = async (event) => {
+      event.preventDefault()
+      if (localBusy) return
+      const path = localPath.trim()
+      if (path === '') return
+      setLocalBusy(true)
+      setLocalError(null)
+      setLocalOpen(false)
+      try {
+        await openLocalPreview(path)
+      } finally {
+        if (mounted.current) setLocalBusy(false)
+      }
+    }
+
     const closePreview = React.useCallback(() => {
       if (installing) return
       previewSeq.current += 1
@@ -2125,6 +2244,11 @@ function createMarketPage({ api, fallbackT, getLocale }) {
               onClick: clearSearch,
             }, h(CloseIcon, { size: 13 })),
           ),
+          h('button', {
+            type: 'button',
+            className: 'dshsm-btn dshsm-btnSmall',
+            onClick: () => { setLocalError(null); setLocalOpen(true) },
+          }, t('localInstall')),
         ),
         h('div', {
           className: 'dshsm-progress',
@@ -2470,7 +2594,13 @@ function createMarketPage({ api, fallbackT, getLocale }) {
         state: preview,
         installing,
         onClose: closePreview,
-        onRetry: () => { void openPreview(preview.entry) },
+        onRetry: () => {
+          if (preview.entry !== null && preview.entry !== undefined && preview.entry.kind === 'local') {
+            void openLocalPreview(preview.entry.path)
+          } else {
+            void openPreview(preview.entry)
+          }
+        },
         onInstall: () => { void confirmInstall() },
       }),
       sourcesOpen
@@ -2486,6 +2616,17 @@ function createMarketPage({ api, fallbackT, getLocale }) {
           onSubmit: submitSource,
           onSelect: (id) => { void selectSource(id, true) },
           onRemove: (id) => { void removeSource(id) },
+        })
+        : null,
+      localOpen
+        ? h(LocalInstallDialog, {
+          t,
+          path: localPath,
+          error: localError,
+          busy: localBusy,
+          onClose: () => { if (!localBusy) setLocalOpen(false) },
+          onChange: (value) => { setLocalPath(value); setLocalError(null) },
+          onSubmit: submitLocal,
         })
         : null,
       toasts.length === 0 ? null : h('div', { className: 'dshsm-toasts', role: 'status', 'aria-live': 'polite' },

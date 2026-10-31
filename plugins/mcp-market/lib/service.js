@@ -7,11 +7,15 @@
  * helper stays independent of a live harness.
  */
 import { spawnSync } from 'node:child_process'
+import { constants as fsConstants } from 'node:fs'
+import { access, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, relative, resolve, sep } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import {
   buildChoice,
   normalizeValues,
+  normalizeLocalServer,
+  previewLocalServer,
   previewServer,
   recordFromChoice,
   rowFromRecord,
@@ -64,6 +68,27 @@ export function commandAvailable(command) {
   try {
     const result = spawnSync(tool, [command], { stdio: 'ignore', timeout: 2000 })
     return result.status === 0
+  } catch {
+    return false
+  }
+}
+
+/** Check an absolute executable or a PATH command list without a shell. */
+async function localCommandAvailable(command) {
+  if (!isAbsolute(command)) return commandAvailable(command)
+  try {
+    await access(command, process.platform === 'win32' ? fsConstants.F_OK : fsConstants.X_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Verify an optional local working directory. */
+async function localCwdAvailable(cwd) {
+  if (cwd === undefined) return true
+  try {
+    return (await stat(cwd)).isDirectory()
   } catch {
     return false
   }
@@ -288,7 +313,7 @@ export function createMarketService(options = {}) {
     description: record.description,
     version: record.version,
     transport: record.transport,
-    ...(record.transport === 'streamable-http' ? { url: record.url } : { command: record.command, args: record.args }),
+    ...(record.transport === 'streamable-http' ? { url: record.url } : { command: record.command, args: record.args, ...(record.cwd === undefined ? {} : { cwd: record.cwd }) }),
     ...(record.sourceId === undefined ? {} : { sourceId: record.sourceId }),
     ...(record.sourceTitle === undefined ? {} : { sourceTitle: record.sourceTitle }),
     enabled: record.enabled,
@@ -449,6 +474,83 @@ export function createMarketService(options = {}) {
     return { installed: true, applied: hmrAvailable(), restartRequired: !hmrAvailable() }
   })
 
+  /** Preview a manually entered local stdio MCP server. */
+  const previewLocal = async body => {
+    const normalized = normalizeLocalServer(body)
+    requirePatchPath()
+    const available = await localCommandAvailable(normalized.command)
+    const cwdOk = await localCwdAvailable(normalized.cwd)
+    if (!cwdOk) throw mcpError('invalid-value', 'The working directory does not exist.', 400, { field: 'cwd' })
+    const doc = await storeManager().read()
+    const existing = Object.values(doc.servers).find(record => record.serverName === normalized.serverName)
+    const result = previewLocalServer(normalized, { available, existing: existing !== undefined })
+    if (existing !== undefined) result.existingRowId = existing.rowId
+    result.patchPath = displayPatchPath(patchPath(), dshHome())
+    result.profileName = profileName()
+    return result
+  }
+
+  /** Install a manually entered local stdio MCP server. */
+  const installLocal = body => mutationQueue.run(async () => {
+    const normalized = normalizeLocalServer(body)
+    requirePatchPath()
+    if (!(await localCommandAvailable(normalized.command))) {
+      throw mcpError('runtime-missing', `The command "${normalized.command}" is not available.`, 400, {
+        command: normalized.command,
+      })
+    }
+    if (!(await localCwdAvailable(normalized.cwd))) {
+      throw mcpError('invalid-value', 'The working directory does not exist.', 400, { field: 'cwd' })
+    }
+    const patch = patchManager()
+    const store = storeManager()
+    const before = await store.read()
+    const existing = Object.values(before.servers).find(record => record.serverName === normalized.serverName)
+    if (existing !== undefined && body?.replace !== true) {
+      throw mcpError('already-installed', 'A server with this name is already installed.', 409, {
+        rowId: existing.rowId,
+      })
+    }
+    const timestamp = new Date(now()).toISOString()
+    const rowId = existing?.rowId ?? rowIdFor(`local/${normalized.serverName}`)
+    const record = {
+      rowId,
+      serverName: normalized.serverName,
+      registryName: `local/${normalized.serverName}`,
+      title: normalized.title,
+      description: 'Local stdio MCP server',
+      version: '',
+      transport: 'stdio',
+      command: normalized.command,
+      args: [...normalized.args],
+      ...(Object.keys(normalized.env).length === 0 ? {} : { env: { ...normalized.env } }),
+      ...(normalized.cwd === undefined ? {} : { cwd: normalized.cwd }),
+      enabled: true,
+      installedAt: existing?.installedAt ?? timestamp,
+      updatedAt: timestamp,
+      sourceId: 'local',
+      sourceTitle: 'Local',
+    }
+    const next = { version: 1, servers: { ...before.servers } }
+    for (const [id, candidate] of Object.entries(next.servers)) {
+      if (candidate.serverName === normalized.serverName) delete next.servers[id]
+    }
+    next.servers[rowId] = record
+
+    await writeRowsFor(patch, next)
+    try {
+      await store.write(next)
+    } catch (error) {
+      try {
+        await writeRowsFor(patch, before)
+      } catch (rollbackError) {
+        logger?.warn?.(`dsh-mcp-market: local install rollback failed: ${rollbackError?.message ?? 'unknown'}`)
+      }
+      throw error
+    }
+    return { installed: true, applied: hmrAvailable(), restartRequired: !hmrAvailable() }
+  })
+
   const toggle = body => mutationQueue.run(async () => {
     const rowId = body?.rowId
     if (typeof rowId !== 'string' || !isRowId(rowId)) {
@@ -529,7 +631,9 @@ export function createMarketService(options = {}) {
     search,
     detail,
     preview,
+    previewLocal,
     install,
+    installLocal,
     toggle,
     remove,
     installed,

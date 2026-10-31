@@ -61,6 +61,14 @@ const ROUTES = Object.freeze([
     },
   },
   {
+    path: '/api/local/preview',
+    method: 'POST',
+    handle: async (service, request) => {
+      const body = await readJsonBody(request.req)
+      return service.previewLocal(body.path)
+    },
+  },
+  {
     path: '/api/install',
     method: 'POST',
     handle: async (service, request) => {

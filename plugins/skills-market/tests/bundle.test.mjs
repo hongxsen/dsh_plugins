@@ -231,8 +231,9 @@ test('the detail and installed branches render', () => {
 test('the preview dialog renders files, warnings, and the second confirm state', () => {
   const queue = []
   // Hooks before preview: view, detail, query, search, descriptions, installed,
-  // sources, sourcesOpen, sourceForm, sourceFormError, sourceBusy, preview.
-  queue[11] = {
+  // sources, sourcesOpen, sourceForm, sourceFormError, sourceBusy,
+  // localOpen, localPath, localError, localBusy, preview.
+  queue[15] = {
     status: 'ready',
     entry: catalogEntry,
     armed: false,

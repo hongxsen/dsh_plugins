@@ -64,7 +64,19 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 
 `source` 必须是 GitHub 的 `owner/repo`，`skillId` 用于定位技能目录；安装时仍然从 GitHub 下载、解析 `SKILL.md`、做安全扫描并展示预览。也就是说，自定义索引只改变“发现”的来源，不绕过安装校验。
 
-市场源保存在 `<DSH_HOME>/storages/dsh-skills-market/sources.json`（权限 `0600`，内置源不可删除）。索引文档限制 2 MiB / 2000 条，缓存 5 分钟；地址只允许 `http(s)`，不能带用户名密码或 `#fragment`。自定义源的内容同样来自第三方，安装前请查看预览与安全提示。
+市场源保存在 `<DSH_HOME>/storages/dsh-skills-market/sources.json`（权限 `0600`，内置源不可删除）。索引文档限制 2 MiB / 2000 条，缓存 5 分钟；HTTP 地址只允许 `http(s)`，不能带用户名密码或 `#fragment`；JSON 索引类型还允许 `file://`、绝对路径或 `~/` 路径，方便直接读取本机目录里的索引。自定义源的内容同样来自第三方，安装前请查看预览与安全提示。
+
+## 本地安装 / Local install
+
+「发现」页搜索框右侧的「本地安装」按钮可以从本机目录安装技能：
+
+- 填一个包含 `SKILL.md` 的目录，或直接填一个 `SKILL.md` 文件；
+- 支持绝对路径、`~/` 和 `file://`；相对路径会被拒绝；
+- 预览阶段会校验 frontmatter、列出全部文件并执行与远程安装相同的安全扫描，确认后才写入 `~/.dsh/skills/<name>`；
+- 原目录只读，不会被移动、复制后再删除或修改；符号链接、特殊文件和 `..` 路径会被拒绝；
+- 目录最多 200 个文件 / 8 MiB，单文件 4 MiB；`SKILL.md` 文件会规范化为 `<name>/SKILL.md`。
+
+本地安装同样使用 Host 侧的 staging token 和预览确认，浏览器不能直接指定目标目录或绕过扫描。
 
 ## 技能装到哪里
 
@@ -86,7 +98,8 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 - **前端校验不替代 Host 校验**：安装接口只接收 staging token，Host 会重新校验暂存文件、frontmatter 与目标路径；不会信任浏览器传来的文件名或目录。
 - **替换与移除**：`replace` 只允许覆盖 `installed.json` 里记录过、且位于技能根目录内的目录；符号链接、目录外路径、未知目录一律拒绝（`skills/not-managed`）。移除只针对本插件安装并记录过的技能，先移到 `.trash` 再删除，然后清理记录。
 - **不记录敏感信息**：本插件不读取、不记录 `GITHUB_TOKEN`、请求头、环境变量或页面内容；`GITHUB_TOKEN`（如果 Host 环境里有）只用于 GitHub API 请求，出现在错误信息里的只会是 HTTP 状态码。
-- **自定义源是显式信任边界**：市场源由用户手动添加，Host 会直接请求该地址（允许 `http(s)`，上限 2 MiB / 10 秒）。不要添加不受信任的内网地址；索引内容仍要经过安装预览与安全扫描。
+- **自定义源是显式信任边界**：市场源由用户手动添加，Host 会直接请求该地址（HTTP 源允许 `http(s)`，本机索引允许 `file://`/绝对路径/`~/`，上限 2 MiB / 10 秒）。不要添加不受信任的内网地址；索引内容仍要经过安装预览与安全扫描。
+- **本地安装只读源目录**：从本机安装时 Host 用 `realpath` + `lstat` 校验路径，拒绝符号链接、特殊文件、`..` 和超出上限的目录；只读取源目录并写入 staging 与技能根，不会改源目录。
 - **网络降级**：目录搜索超时/离线/限流时回退到内置热门列表；详情描述抓取失败只返回空描述，不阻塞详情页。
 
 ## HMR 与重启
@@ -108,12 +121,13 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 | GET | `/api/sources` | — | `{ version, selected, sources }` |
 | POST | `/api/sources` | `{ action: "add"\|"remove"\|"select", ... }` | `{ selected, sources, source? }` |
 | POST | `/api/preview` | `{ source, skillId }` | `{ token, name, description, source, skillId, repo, branch, path, files, totalBytes, skillMd, warnings, warningTotal, existing, target }` |
+| POST | `/api/local/preview` | `{ path }` | 同 `/api/preview`，另带 `kind: "local"`、`localPath`，`repo`/`branch` 为空 |
 | POST | `/api/install` | `{ token, replace? }` | `{ installed: true, name }` |
 | GET | `/api/installed` | — | `{ skills: [...] }` |
 | POST | `/api/remove` | `{ name }` | `{ removed: true }` |
 | GET | `/api/health` | — | `{ ok: true, root, version, sources }` |
 
-错误码：`skills/invalid-query`、`skills/fetch-failed`、`skills/not-found`、`skills/invalid-skill`、`skills/too-large`、`skills/exists`、`skills/not-managed`、`skills/staging-expired`、`skills/install-failed`、`sources/invalid`、`sources/limit`、`sources/not-found`、`sources/builtin`、`sources/fetch-failed`、`sources/invalid-index`；请求层另有 `request/forbidden-origin`、`request/unsupported-media-type`、`request/body-too-large`、`request/invalid-json`、`request/not-found`、`request/method-not-allowed`、`internal/error`。
+错误码：`skills/invalid-query`、`skills/fetch-failed`、`skills/not-found`、`skills/invalid-skill`、`skills/too-large`、`skills/exists`、`skills/not-managed`、`skills/staging-expired`、`skills/install-failed`、`skills/invalid-path`、`sources/invalid`、`sources/limit`、`sources/not-found`、`sources/builtin`、`sources/fetch-failed`、`sources/invalid-index`；请求层另有 `request/forbidden-origin`、`request/unsupported-media-type`、`request/body-too-large`、`request/invalid-json`、`request/not-found`、`request/method-not-allowed`、`internal/error`。
 
 ## 开发
 
@@ -141,6 +155,7 @@ lib/
   remote.js           有界 fetch、skills.sh 搜索/详情、GitHub API/raw
   metadata.js         installed.json 原子读写
   installed.js        已安装技能扫描与警告统计
+  local.js            本机目录/SKILL.md 预览、文件上限与路径校验
   staging.js          预览、原子安装/回滚、受控移除
   skills.js           Market service（缓存、预览流水线、安装/移除编排）
   routes.js           前缀路由、请求校验、JSON 响应

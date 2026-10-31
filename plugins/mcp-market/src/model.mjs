@@ -163,11 +163,13 @@ export function validateSourceDraft(draft) {
   if (title.length === 0) errors.title = 'sources.field.titleRequired'
   else if (title.length > MAX_SOURCE_TITLE) errors.title = 'sources.field.titleTooLong'
   const rawUrl = typeof draft?.url === 'string' ? draft.url.trim() : ''
+  const isIndex = draft?.kind === 'index'
+  const localIndex = isIndex && (rawUrl.startsWith('~/') || rawUrl.startsWith('/') || rawUrl.startsWith('file:'))
   if (rawUrl.length === 0) {
     errors.url = 'sources.field.urlRequired'
   } else if (rawUrl.length > MAX_SOURCE_URL) {
     errors.url = 'sources.field.urlInvalid'
-  } else {
+  } else if (!localIndex) {
     let parsed
     try {
       parsed = new URL(rawUrl)

@@ -12,7 +12,9 @@
  */
 import { chmod, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { randomBytes, randomUUID } from 'node:crypto'
-import { join } from 'node:path'
+import { homedir } from 'node:os'
+import { join, isAbsolute } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { isPlainObject, sourcesError } from './errors.js'
 import { fetchIndexDocument, INDEX_TIMEOUT_MS, MAX_INDEX_BYTES } from './index-source.js'
 import { createSerialQueue } from './patch.js'
@@ -82,7 +84,7 @@ export function isSourceKind(value) {
  * @returns the trimmed URL.
  * @throws ApiError `sources/invalid`.
  */
-export function normalizeSourceUrl(value) {
+export function normalizeSourceUrl(value, kind = undefined) {
   if (typeof value !== 'string') {
     throw sourcesError('invalid', 'The source URL must be a string.', 400)
   }
@@ -92,6 +94,13 @@ export function normalizeSourceUrl(value) {
       maxLength: MAX_URL_LENGTH,
     })
   }
+  const local = localIndexUrl(url)
+  if (local !== null) {
+    if (kind !== 'index') {
+      throw sourcesError('invalid', 'Local paths are only supported for JSON index sources.', 400)
+    }
+    return local
+  }
   let parsed
   try {
     parsed = new URL(url)
@@ -99,7 +108,7 @@ export function normalizeSourceUrl(value) {
     throw sourcesError('invalid', 'The source URL is not a valid absolute URL.', 400)
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw sourcesError('invalid', 'The source URL must use HTTP or HTTPS.', 400)
+    throw sourcesError('invalid', 'The source URL must use HTTP, HTTPS, or a local path.', 400)
   }
   if (parsed.username !== '' || parsed.password !== '') {
     throw sourcesError('invalid', 'The source URL must not embed credentials.', 400)
@@ -108,6 +117,31 @@ export function normalizeSourceUrl(value) {
     throw sourcesError('invalid', 'The source URL must not contain a fragment.', 400)
   }
   return url
+}
+
+/** Canonicalize an absolute path, `~/...` path, or `file:` URL. */
+function localIndexUrl(value) {
+  const expanded = value === '~' || value.startsWith('~/') ? join(homedir(), value.slice(2)) : value
+  if (isAbsolute(expanded)) return pathToFileURL(expanded).href
+  if (!expanded.startsWith('file:')) return null
+  let parsed
+  try {
+    parsed = new URL(expanded)
+  } catch {
+    throw sourcesError('invalid', 'The local source path is not a valid file URL.', 400)
+  }
+  if (parsed.protocol !== 'file:') return null
+  if (parsed.hostname !== '' && parsed.hostname !== 'localhost') {
+    throw sourcesError('invalid', 'The local source file URL must not name a remote host.', 400)
+  }
+  if (parsed.hash !== '') {
+    throw sourcesError('invalid', 'The source URL must not contain a fragment.', 400)
+  }
+  try {
+    return pathToFileURL(fileURLToPath(parsed)).href
+  } catch {
+    throw sourcesError('invalid', 'The local source path is not valid.', 400)
+  }
 }
 
 /** Validate a title and return the trimmed value. */
@@ -139,7 +173,7 @@ function normalizeStoredSource(raw) {
   let url
   try {
     title = normalizeSourceTitle(raw.title)
-    url = normalizeSourceUrl(raw.url)
+    url = normalizeSourceUrl(raw.url, raw.kind)
   } catch {
     return null
   }
@@ -263,7 +297,7 @@ export function createSourceStore({ dir, logger, fetchImpl, indexTimeoutMs, inde
       throw sourcesError('invalid', 'The market source kind is not supported.', 400, { kinds: [...SOURCE_KINDS] })
     }
     const cleanTitle = normalizeSourceTitle(title)
-    const cleanUrl = normalizeSourceUrl(url)
+    const cleanUrl = normalizeSourceUrl(url, kind)
     if (kind === 'index') {
       // Validate before the queue so a slow source does not block unrelated
       // mutations. Nothing is persisted until the document is accepted.

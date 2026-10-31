@@ -10,7 +10,7 @@ window.__ModuleLoader__.load({
   id: '@hongxsen/dsh-mcp-market',
   factory(require) {
     const React = require('react')
-    const LOCALES = {"zh":{"panel":"MCP","title":"MCP 市场","intro":"从官方 MCP Registry 或自定义市场源搜索服务器；安装后会写入当前 profile，并在这里随时启停。","tab.discover":"发现","tab.installed":"已安装","search.placeholder":"搜索 MCP 服务器，例如 github、filesystem…","search.label":"搜索 MCP 服务器","search.clear":"清空搜索","search.busy":"正在搜索","search.cached":"缓存结果","search.results":"{count} 个结果","action.retry":"重试","action.back":"返回","action.install":"安装","action.installing":"正在安装…","action.cancel":"取消","action.close":"关闭","action.remove":"移除","action.refresh":"刷新","action.done":"完成","action.viewInstalled":"查看已安装","action.show":"显示","action.hide":"隐藏","action.replace":"替换安装","action.removing":"正在移除…","action.replacing":"正在替换…","action.searchNow":"搜索","state.loading":"正在加载…","state.discoverEmptyTitle":"没有找到匹配的服务器","state.discoverEmptyBody":"换一个关键词再试试，或清空搜索查看推荐列表。","state.installedEmptyTitle":"还没有安装 MCP 服务器","state.installedEmptyBody":"去「发现」里选一个，安装后会出现在这里。","state.errorTitle":"加载失败","state.errorBody":"无法获取数据，请检查网络后重试。","state.errorCode":"错误代码：{code}","card.remote":"远程","card.package":"本地","card.updated":"更新于 {date}","card.latest":"最新","card.notSupported":"暂不支持","card.open":"查看 {name}","detail.about":"简介","detail.connection":"连接方式","detail.remote":"远程 · Streamable HTTP","detail.package":"本地 · stdio","detail.version":"版本","detail.updated":"更新时间","detail.repository":"源码仓库","detail.website":"项目主页","detail.url":"地址","detail.command":"命令","detail.args":"参数","detail.installTitle":"安装","detail.installHint":"选择一种连接方式并填写凭据。安装会写入当前 profile 的 dsh-mcp-client 配置。","detail.trust":"目录中的说明、链接与命令都来自第三方。安装前请自行确认来源；安装后 MCP 服务器会以你的身份访问网络和本地资源。","detail.choice":"连接方式","detail.choiceRemote":"远程服务","detail.choicePackage":"本地进程","detail.runtimeMissing":"缺少运行命令 {command}，无法安装这个包。","detail.existing":"同名服务器已经安装。继续安装会替换原配置。","detail.existingHint":"替换只更新本插件管理的行，不会改动其他行。","detail.needsInput":"这个条目声明了必填的命令参数，但注册表没有提供默认值，暂时无法自动安装。","detail.blockedTitle":"缺少注册表未提供的必填项","detail.blockedArgument":"缺少参数 {name}","detail.blockedUrl":"缺少 URL 变量 {name}","detail.headers":"请求头","detail.env":"环境变量","detail.required":"必填","detail.optional":"可选","detail.secret":"敏感","detail.defaultValue":"使用声明默认值","detail.patchTarget":"写入位置","detail.patchUnknown":"当前没有可写的 profile","detail.configPreview":"将写入的配置（敏感值已隐藏）","detail.installSuccess":"安装成功","detail.installApplied":"配置已应用，MCP 服务会在几秒内加载。","detail.installRestart":"配置已写入，重启 DSH 后生效。","detail.installFailed":"安装失败","detail.installNoTools":"加载后，服务器的工具会出现在模型工具列表里。","detail.notInstallable":"这个服务器没有提供可用的连接方式（SSE 暂不支持）。","detail.noConfig":"这个条目没有可安装的配置。","field.required":"请填写{label}","field.tooLong":"内容不能超过 8 KiB","field.invalid":"内容包含不可用的字符","field.headerBreak":"请求头不能包含换行","installed.title":"已安装","installed.intro":"这里列出本插件管理的 MCP 服务器，以及在 profile 里发现的只读行。","installed.profile":"Profile","installed.patch":"配置文件","installed.patchMissing":"未找到","installed.hmrOn":"HMR 已启用","installed.hmrOff":"需要重启","installed.hmrHint":"没有检测到 HMR：修改配置后需要重启 DSH 才会生效。","installed.managed":"本插件管理","installed.external":"外部配置（只读）","installed.externalHint":"这些行由你或其他插件写在托管块之外，本插件只读取、不修改。","installed.enabled":"已启用","installed.disabled":"已停用","installed.enable":"启用","installed.disable":"停用","installed.tools":"{count} 个工具","installed.noTools":"尚未发现工具","installed.versionLabel":"版本 {version}","installed.transport":"连接","installed.installedAt":"安装于 {date}","installed.removeTitle":"移除 MCP 服务器","installed.removeBody":"会从托管块和 MCP 市场记录中删除「{name}」。服务器自己的数据不会被删除。","installed.externalBadge":"外部","installed.noPatch":"没有找到活动 profile 的 patch 文件，无法管理 MCP 行。","toast.installed":"已安装 {name}","toast.replaced":"已替换 {name}","toast.toggledOn":"已启用 {name}","toast.toggledOff":"已停用 {name}","toast.removed":"已移除 {name}","toast.applied":"配置已应用","toast.restartRequired":"配置已写入，重启 DSH 后生效","toast.error":"操作失败：{message}","toast.dismiss":"关闭通知","warning.insecureUrl":"连接地址使用 HTTP，明文传输可能泄露凭据。","warning.secretInProfile":"凭据会明文保存在当前 profile 的 cordis.patch.yml（权限 0600）。","warning.unpinnedVersion":"包版本未固定（latest），后续可能自动升级。","warning.runtimeMissing":"缺少运行命令，无法安装。","warning.unsupported":"这个服务器只有 SSE 连接方式，当前不支持。","error.invalidQuery":"搜索词无效。","error.rateLimited":"MCP Registry 请求过于频繁，请稍后再试。","error.fetchFailed":"无法连接 MCP Registry，请检查网络后重试。","error.notFound":"没有找到这个 MCP 服务器。","error.invalidEntry":"这个条目的配置不完整，无法安装。","error.runtimeMissing":"缺少运行命令 {command}。","error.needsInput":"还有必填内容没有填写。","error.alreadyInstalled":"同名服务器已经安装。","error.invalidValue":"填写的内容不符合要求。","error.notManaged":"这一行不由本插件管理。","error.patchFailed":"写入 profile 配置失败。","error.installFailed":"安装失败，请稍后重试。","error.timeout":"请求超时，请重试。","error.unknown":"出错了，请重试。","sources.dialogTitle":"市场源","sources.dialogIntro":"搜索、详情和安装都使用当前选中的市场源。","sources.existingTitle":"已有市场源","sources.addTitle":"添加市场源","sources.add":"添加","sources.adding":"正在添加…","sources.builtin":"内置","sources.builtinHint":"内置市场源始终保留，不能移除。","sources.builtinTitle":"MCP Registry","sources.empty":"还没有可用的市场源。","sources.indexHint":"JSON 索引需要 format: 1；安装时仍会从该源重新读取服务器信息。","sources.kindLabel":"类型","sources.kind.index":"JSON 索引","sources.kind.mcpRegistry":"MCP Registry 兼容","sources.loading":"正在加载市场源…","sources.manage":"管理市场源…","sources.openManager":"管理市场源","sources.removeLabel":"移除市场源 {title}","sources.selectLabel":"使用市场源 {title}","sources.switcherLabel":"选择市场源","sources.titleLabel":"名称","sources.titlePlaceholder":"例如：团队 MCP 市场","sources.urlLabel":"地址","sources.urlPlaceholder":"https://example.com/mcp-index.json","sources.using":"使用中","search.market":"市场源：{title}","installed.source":"市场源：{title}"},"en":{"panel":"MCP","title":"MCP Market","intro":"Search the official MCP Registry or a custom market source; installed servers are written to the active profile and can be toggled here.","tab.discover":"Discover","tab.installed":"Installed","search.placeholder":"Search MCP servers, for example github or filesystem…","search.label":"Search MCP servers","search.clear":"Clear search","search.busy":"Searching","search.cached":"Cached results","search.results":"{count} results","action.retry":"Retry","action.back":"Back","action.install":"Install","action.installing":"Installing…","action.cancel":"Cancel","action.close":"Close","action.remove":"Remove","action.refresh":"Refresh","action.done":"Done","action.viewInstalled":"View installed","action.show":"Show","action.hide":"Hide","action.replace":"Replace install","action.removing":"Removing…","action.replacing":"Replacing…","action.searchNow":"Search","state.loading":"Loading…","state.discoverEmptyTitle":"No matching servers","state.discoverEmptyBody":"Try another keyword, or clear the search to see the featured list.","state.installedEmptyTitle":"No MCP servers installed yet","state.installedEmptyBody":"Pick one under Discover; it will appear here after installing.","state.errorTitle":"Could not load","state.errorBody":"The data could not be fetched. Check the network and retry.","state.errorCode":"Error code: {code}","card.remote":"Remote","card.package":"Local","card.updated":"Updated {date}","card.latest":"Latest","card.notSupported":"Not supported","card.open":"Open {name}","detail.about":"About","detail.connection":"Connection","detail.remote":"Remote · Streamable HTTP","detail.package":"Local · stdio","detail.version":"Version","detail.updated":"Updated","detail.repository":"Repository","detail.website":"Website","detail.url":"Endpoint","detail.command":"Command","detail.args":"Arguments","detail.installTitle":"Install","detail.installHint":"Choose a connection and fill in any credentials. Installing writes a dsh-mcp-client row to the active profile.","detail.trust":"Descriptions, links, and commands in the catalog come from third parties. Verify the source before installing; once connected, the MCP server can reach the network and local resources as you.","detail.choice":"Connection","detail.choiceRemote":"Remote service","detail.choicePackage":"Local process","detail.runtimeMissing":"The runtime command {command} is missing, so this package cannot be installed.","detail.existing":"A server with this name is already installed. Continuing replaces its configuration.","detail.existingHint":"Replacing only updates rows managed by this plugin and leaves other rows untouched.","detail.needsInput":"This entry declares required command arguments without registry defaults, so it cannot be installed automatically yet.","detail.blockedTitle":"Required values are missing","detail.blockedArgument":"Missing argument {name}","detail.blockedUrl":"Missing URL variable {name}","detail.headers":"Headers","detail.env":"Environment variables","detail.required":"Required","detail.optional":"Optional","detail.secret":"Secret","detail.defaultValue":"Uses the declared default","detail.patchTarget":"Writes to","detail.patchUnknown":"No writable profile is active","detail.configPreview":"Configuration to write (secrets hidden)","detail.installSuccess":"Installed","detail.installApplied":"Configuration applied. The MCP server should load within a few seconds.","detail.installRestart":"Configuration written. Restart DSH for it to take effect.","detail.installFailed":"Install failed","detail.installNoTools":"Once loaded, the server's tools appear in the model's tool list.","detail.notInstallable":"This server offers no supported connection (SSE is not supported yet).","detail.noConfig":"This entry has no installable configuration.","field.required":"Enter {label}","field.tooLong":"Must be 8 KiB or smaller","field.invalid":"Contains unsupported characters","field.headerBreak":"Headers cannot contain line breaks","installed.title":"Installed","installed.intro":"Servers managed by this plugin, plus read-only rows discovered in the profile.","installed.profile":"Profile","installed.patch":"Configuration file","installed.patchMissing":"Not found","installed.hmrOn":"HMR enabled","installed.hmrOff":"Restart required","installed.hmrHint":"HMR was not detected: configuration changes need a DSH restart to take effect.","installed.managed":"Managed by this plugin","installed.external":"External configuration (read-only)","installed.externalHint":"These rows live outside the managed block and were written by you or another plugin; this plugin only reads them.","installed.enabled":"Enabled","installed.disabled":"Disabled","installed.enable":"Enable","installed.disable":"Disable","installed.tools":"{count} tools","installed.noTools":"No tools discovered yet","installed.versionLabel":"Version {version}","installed.transport":"Connection","installed.installedAt":"Installed {date}","installed.removeTitle":"Remove MCP server","installed.removeBody":"Removes \"{name}\" from the managed block and the MCP Market records. The server's own data is not deleted.","installed.externalBadge":"External","installed.noPatch":"No patch file for the active profile was found, so MCP rows cannot be managed.","toast.installed":"Installed {name}","toast.replaced":"Replaced {name}","toast.toggledOn":"Enabled {name}","toast.toggledOff":"Disabled {name}","toast.removed":"Removed {name}","toast.applied":"Configuration applied","toast.restartRequired":"Configuration written; restart DSH to apply","toast.error":"Operation failed: {message}","toast.dismiss":"Dismiss notification","warning.insecureUrl":"The endpoint uses HTTP; credentials may be exposed in transit.","warning.secretInProfile":"Credentials are stored in plain text in the active profile's cordis.patch.yml (mode 0600).","warning.unpinnedVersion":"The package version is not pinned (latest) and may upgrade later.","warning.runtimeMissing":"A required runtime command is missing, so installation is blocked.","warning.unsupported":"This server only offers SSE, which is not supported yet.","error.invalidQuery":"The search query is invalid.","error.rateLimited":"The MCP Registry is rate limiting requests. Try again shortly.","error.fetchFailed":"Could not reach the MCP Registry. Check the network and retry.","error.notFound":"This MCP server was not found.","error.invalidEntry":"This entry's configuration is incomplete and cannot be installed.","error.runtimeMissing":"The runtime command {command} is missing.","error.needsInput":"Some required fields are still empty.","error.alreadyInstalled":"A server with this name is already installed.","error.invalidValue":"A submitted value does not meet the requirements.","error.notManaged":"That row is not managed by this plugin.","error.patchFailed":"Writing the profile configuration failed.","error.installFailed":"Installation failed. Try again.","error.timeout":"The request timed out. Try again.","error.unknown":"Something went wrong. Try again.","sources.dialogTitle":"Market sources","sources.dialogIntro":"Search, details, and install use the selected market source.","sources.existingTitle":"Configured sources","sources.addTitle":"Add a source","sources.add":"Add","sources.adding":"Adding…","sources.builtin":"Built-in","sources.builtinHint":"The built-in source is always present and cannot be removed.","sources.builtinTitle":"MCP Registry","sources.empty":"No market sources are available.","sources.indexHint":"A JSON index must declare format: 1. Installation re-reads the server entry from that source.","sources.kindLabel":"Type","sources.kind.index":"JSON index","sources.kind.mcpRegistry":"MCP Registry compatible","sources.loading":"Loading market sources…","sources.manage":"Manage sources…","sources.openManager":"Manage sources","sources.removeLabel":"Remove market source {title}","sources.selectLabel":"Use market source {title}","sources.switcherLabel":"Select market source","sources.titleLabel":"Name","sources.titlePlaceholder":"For example: Team MCP","sources.urlLabel":"URL","sources.urlPlaceholder":"https://example.com/mcp-index.json","sources.using":"In use","search.market":"Market: {title}","installed.source":"Market: {title}"}}
+    const LOCALES = {"zh":{"panel":"MCP","title":"MCP 市场","intro":"从官方 MCP Registry 或自定义市场源搜索服务器；安装后会写入当前 profile，并在这里随时启停。","tab.discover":"发现","tab.installed":"已安装","search.placeholder":"搜索 MCP 服务器，例如 github、filesystem…","search.label":"搜索 MCP 服务器","search.clear":"清空搜索","search.busy":"正在搜索","search.cached":"缓存结果","search.results":"{count} 个结果","action.retry":"重试","action.back":"返回","action.install":"安装","action.installing":"正在安装…","action.cancel":"取消","action.close":"关闭","action.remove":"移除","action.refresh":"刷新","action.done":"完成","action.viewInstalled":"查看已安装","action.show":"显示","action.hide":"隐藏","action.replace":"替换安装","action.removing":"正在移除…","action.replacing":"正在替换…","action.searchNow":"搜索","state.loading":"正在加载…","state.discoverEmptyTitle":"没有找到匹配的服务器","state.discoverEmptyBody":"换一个关键词再试试，或清空搜索查看推荐列表。","state.installedEmptyTitle":"还没有安装 MCP 服务器","state.installedEmptyBody":"去「发现」里选一个，安装后会出现在这里。","state.errorTitle":"加载失败","state.errorBody":"无法获取数据，请检查网络后重试。","state.errorCode":"错误代码：{code}","card.remote":"远程","card.package":"本地","card.updated":"更新于 {date}","card.latest":"最新","card.notSupported":"暂不支持","card.open":"查看 {name}","detail.about":"简介","detail.connection":"连接方式","detail.remote":"远程 · Streamable HTTP","detail.package":"本地 · stdio","detail.version":"版本","detail.updated":"更新时间","detail.repository":"源码仓库","detail.website":"项目主页","detail.url":"地址","detail.command":"命令","detail.args":"参数","detail.installTitle":"安装","detail.installHint":"选择一种连接方式并填写凭据。安装会写入当前 profile 的 dsh-mcp-client 配置。","detail.trust":"目录中的说明、链接与命令都来自第三方。安装前请自行确认来源；安装后 MCP 服务器会以你的身份访问网络和本地资源。","detail.choice":"连接方式","detail.choiceRemote":"远程服务","detail.choicePackage":"本地进程","detail.runtimeMissing":"缺少运行命令 {command}，无法安装这个包。","detail.existing":"同名服务器已经安装。继续安装会替换原配置。","detail.existingHint":"替换只更新本插件管理的行，不会改动其他行。","detail.needsInput":"这个条目声明了必填的命令参数，但注册表没有提供默认值，暂时无法自动安装。","detail.blockedTitle":"缺少注册表未提供的必填项","detail.blockedArgument":"缺少参数 {name}","detail.blockedUrl":"缺少 URL 变量 {name}","detail.headers":"请求头","detail.env":"环境变量","detail.required":"必填","detail.optional":"可选","detail.secret":"敏感","detail.defaultValue":"使用声明默认值","detail.patchTarget":"写入位置","detail.patchUnknown":"当前没有可写的 profile","detail.configPreview":"将写入的配置（敏感值已隐藏）","detail.installSuccess":"安装成功","detail.installApplied":"配置已应用，MCP 服务会在几秒内加载。","detail.installRestart":"配置已写入，重启 DSH 后生效。","detail.installFailed":"安装失败","detail.installNoTools":"加载后，服务器的工具会出现在模型工具列表里。","detail.notInstallable":"这个服务器没有提供可用的连接方式（SSE 暂不支持）。","detail.noConfig":"这个条目没有可安装的配置。","field.required":"请填写{label}","field.tooLong":"内容不能超过 8 KiB","field.invalid":"内容包含不可用的字符","field.headerBreak":"请求头不能包含换行","installed.title":"已安装","installed.intro":"这里列出本插件管理的 MCP 服务器，以及在 profile 里发现的只读行。","installed.profile":"Profile","installed.patch":"配置文件","installed.patchMissing":"未找到","installed.hmrOn":"HMR 已启用","installed.hmrOff":"需要重启","installed.hmrHint":"没有检测到 HMR：修改配置后需要重启 DSH 才会生效。","installed.managed":"本插件管理","installed.external":"外部配置（只读）","installed.externalHint":"这些行由你或其他插件写在托管块之外，本插件只读取、不修改。","installed.enabled":"已启用","installed.disabled":"已停用","installed.enable":"启用","installed.disable":"停用","installed.tools":"{count} 个工具","installed.noTools":"尚未发现工具","installed.versionLabel":"版本 {version}","installed.transport":"连接","installed.installedAt":"安装于 {date}","installed.removeTitle":"移除 MCP 服务器","installed.removeBody":"会从托管块和 MCP 市场记录中删除「{name}」。服务器自己的数据不会被删除。","installed.externalBadge":"外部","installed.noPatch":"没有找到活动 profile 的 patch 文件，无法管理 MCP 行。","toast.installed":"已安装 {name}","toast.replaced":"已替换 {name}","toast.toggledOn":"已启用 {name}","toast.toggledOff":"已停用 {name}","toast.removed":"已移除 {name}","toast.applied":"配置已应用","toast.restartRequired":"配置已写入，重启 DSH 后生效","toast.error":"操作失败：{message}","toast.dismiss":"关闭通知","warning.insecureUrl":"连接地址使用 HTTP，明文传输可能泄露凭据。","warning.secretInProfile":"凭据会明文保存在当前 profile 的 cordis.patch.yml（权限 0600）。","warning.unpinnedVersion":"包版本未固定（latest），后续可能自动升级。","warning.runtimeMissing":"缺少运行命令，无法安装。","warning.unsupported":"这个服务器只有 SSE 连接方式，当前不支持。","error.invalidQuery":"搜索词无效。","error.rateLimited":"MCP Registry 请求过于频繁，请稍后再试。","error.fetchFailed":"无法连接 MCP Registry，请检查网络后重试。","error.notFound":"没有找到这个 MCP 服务器。","error.invalidEntry":"这个条目的配置不完整，无法安装。","error.runtimeMissing":"缺少运行命令 {command}。","error.needsInput":"还有必填内容没有填写。","error.alreadyInstalled":"同名服务器已经安装。","error.invalidValue":"填写的内容不符合要求。","error.notManaged":"这一行不由本插件管理。","error.patchFailed":"写入 profile 配置失败。","error.installFailed":"安装失败，请稍后重试。","error.timeout":"请求超时，请重试。","error.unknown":"出错了，请重试。","sources.dialogTitle":"市场源","sources.dialogIntro":"搜索、详情和安装都使用当前选中的市场源。","sources.existingTitle":"已有市场源","sources.addTitle":"添加市场源","sources.add":"添加","sources.adding":"正在添加…","sources.builtin":"内置","sources.builtinHint":"内置市场源始终保留，不能移除。","sources.builtinTitle":"MCP Registry","sources.empty":"还没有可用的市场源。","sources.indexHint":"JSON 索引必须声明 format: 1。只有 JSON 索引类型支持本地路径（绝对路径、~/... 或 file://）。安装时会从该源重新读取条目。","sources.kindLabel":"类型","sources.kind.index":"JSON 索引","sources.kind.mcpRegistry":"MCP Registry 兼容","sources.loading":"正在加载市场源…","sources.manage":"管理市场源…","sources.openManager":"管理市场源","sources.removeLabel":"移除市场源 {title}","sources.selectLabel":"使用市场源 {title}","sources.switcherLabel":"选择市场源","sources.titleLabel":"名称","sources.titlePlaceholder":"例如：团队 MCP 市场","sources.urlLabel":"URL 或本地路径","sources.urlPlaceholder":"https://example.com/mcp-index.json 或 ~/mcp-index.json","sources.using":"使用中","search.market":"市场源：{title}","installed.source":"市场源：{title}","local.open":"本地安装","local.title":"添加本地 MCP 服务器","local.subtitle":"填写本机可执行文件。命令不经过 shell，也不会发送到任何市场。","local.name":"服务器名称（可选）","local.namePlaceholder":"留空时根据命令自动生成","local.command":"命令","local.commandPlaceholder":"/usr/local/bin/my-mcp 或 npx","local.args":"参数（每行一个）","local.argsPlaceholder":"-y\nmy-mcp-server","local.env":"环境变量（KEY=VALUE，每行一个）","local.envPlaceholder":"API_KEY=...\nDEBUG=1","local.cwd":"工作目录（可选）","local.cwdPlaceholder":"/Users/you/project","local.preview":"检查","local.previewing":"正在检查…","local.install":"安装","local.installBusy":"正在安装…","local.replace":"替换并安装","local.replaceBusy":"正在替换…","local.existing":"同名服务器已经安装。","local.available":"命令可用，请确认配置后再安装。","local.unavailable":"命令 {command} 不存在，安装会被拒绝。","local.config":"将写入的配置（已隐藏密钥）","local.success":"已安装","local.successApplied":"配置已生效，MCP 服务器通常会在几秒内加载。","local.successRestart":"配置已写入。重启 DSH 后生效。","local.commandRequired":"请填写命令。","local.envInvalid":"第 {line} 行不是 KEY=VALUE。","local.hint":"环境变量会保存在当前 profile；命令会被直接启动，不经过 shell。","local.viewInstalled":"查看已安装"},"en":{"panel":"MCP","title":"MCP Market","intro":"Search the official MCP Registry or a custom market source; installed servers are written to the active profile and can be toggled here.","tab.discover":"Discover","tab.installed":"Installed","search.placeholder":"Search MCP servers, for example github or filesystem…","search.label":"Search MCP servers","search.clear":"Clear search","search.busy":"Searching","search.cached":"Cached results","search.results":"{count} results","action.retry":"Retry","action.back":"Back","action.install":"Install","action.installing":"Installing…","action.cancel":"Cancel","action.close":"Close","action.remove":"Remove","action.refresh":"Refresh","action.done":"Done","action.viewInstalled":"View installed","action.show":"Show","action.hide":"Hide","action.replace":"Replace install","action.removing":"Removing…","action.replacing":"Replacing…","action.searchNow":"Search","state.loading":"Loading…","state.discoverEmptyTitle":"No matching servers","state.discoverEmptyBody":"Try another keyword, or clear the search to see the featured list.","state.installedEmptyTitle":"No MCP servers installed yet","state.installedEmptyBody":"Pick one under Discover; it will appear here after installing.","state.errorTitle":"Could not load","state.errorBody":"The data could not be fetched. Check the network and retry.","state.errorCode":"Error code: {code}","card.remote":"Remote","card.package":"Local","card.updated":"Updated {date}","card.latest":"Latest","card.notSupported":"Not supported","card.open":"Open {name}","detail.about":"About","detail.connection":"Connection","detail.remote":"Remote · Streamable HTTP","detail.package":"Local · stdio","detail.version":"Version","detail.updated":"Updated","detail.repository":"Repository","detail.website":"Website","detail.url":"Endpoint","detail.command":"Command","detail.args":"Arguments","detail.installTitle":"Install","detail.installHint":"Choose a connection and fill in any credentials. Installing writes a dsh-mcp-client row to the active profile.","detail.trust":"Descriptions, links, and commands in the catalog come from third parties. Verify the source before installing; once connected, the MCP server can reach the network and local resources as you.","detail.choice":"Connection","detail.choiceRemote":"Remote service","detail.choicePackage":"Local process","detail.runtimeMissing":"The runtime command {command} is missing, so this package cannot be installed.","detail.existing":"A server with this name is already installed. Continuing replaces its configuration.","detail.existingHint":"Replacing only updates rows managed by this plugin and leaves other rows untouched.","detail.needsInput":"This entry declares required command arguments without registry defaults, so it cannot be installed automatically yet.","detail.blockedTitle":"Required values are missing","detail.blockedArgument":"Missing argument {name}","detail.blockedUrl":"Missing URL variable {name}","detail.headers":"Headers","detail.env":"Environment variables","detail.required":"Required","detail.optional":"Optional","detail.secret":"Secret","detail.defaultValue":"Uses the declared default","detail.patchTarget":"Writes to","detail.patchUnknown":"No writable profile is active","detail.configPreview":"Configuration to write (secrets hidden)","detail.installSuccess":"Installed","detail.installApplied":"Configuration applied. The MCP server should load within a few seconds.","detail.installRestart":"Configuration written. Restart DSH for it to take effect.","detail.installFailed":"Install failed","detail.installNoTools":"Once loaded, the server's tools appear in the model's tool list.","detail.notInstallable":"This server offers no supported connection (SSE is not supported yet).","detail.noConfig":"This entry has no installable configuration.","field.required":"Enter {label}","field.tooLong":"Must be 8 KiB or smaller","field.invalid":"Contains unsupported characters","field.headerBreak":"Headers cannot contain line breaks","installed.title":"Installed","installed.intro":"Servers managed by this plugin, plus read-only rows discovered in the profile.","installed.profile":"Profile","installed.patch":"Configuration file","installed.patchMissing":"Not found","installed.hmrOn":"HMR enabled","installed.hmrOff":"Restart required","installed.hmrHint":"HMR was not detected: configuration changes need a DSH restart to take effect.","installed.managed":"Managed by this plugin","installed.external":"External configuration (read-only)","installed.externalHint":"These rows live outside the managed block and were written by you or another plugin; this plugin only reads them.","installed.enabled":"Enabled","installed.disabled":"Disabled","installed.enable":"Enable","installed.disable":"Disable","installed.tools":"{count} tools","installed.noTools":"No tools discovered yet","installed.versionLabel":"Version {version}","installed.transport":"Connection","installed.installedAt":"Installed {date}","installed.removeTitle":"Remove MCP server","installed.removeBody":"Removes \"{name}\" from the managed block and the MCP Market records. The server's own data is not deleted.","installed.externalBadge":"External","installed.noPatch":"No patch file for the active profile was found, so MCP rows cannot be managed.","toast.installed":"Installed {name}","toast.replaced":"Replaced {name}","toast.toggledOn":"Enabled {name}","toast.toggledOff":"Disabled {name}","toast.removed":"Removed {name}","toast.applied":"Configuration applied","toast.restartRequired":"Configuration written; restart DSH to apply","toast.error":"Operation failed: {message}","toast.dismiss":"Dismiss notification","warning.insecureUrl":"The endpoint uses HTTP; credentials may be exposed in transit.","warning.secretInProfile":"Credentials are stored in plain text in the active profile's cordis.patch.yml (mode 0600).","warning.unpinnedVersion":"The package version is not pinned (latest) and may upgrade later.","warning.runtimeMissing":"A required runtime command is missing, so installation is blocked.","warning.unsupported":"This server only offers SSE, which is not supported yet.","error.invalidQuery":"The search query is invalid.","error.rateLimited":"The MCP Registry is rate limiting requests. Try again shortly.","error.fetchFailed":"Could not reach the MCP Registry. Check the network and retry.","error.notFound":"This MCP server was not found.","error.invalidEntry":"This entry's configuration is incomplete and cannot be installed.","error.runtimeMissing":"The runtime command {command} is missing.","error.needsInput":"Some required fields are still empty.","error.alreadyInstalled":"A server with this name is already installed.","error.invalidValue":"A submitted value does not meet the requirements.","error.notManaged":"That row is not managed by this plugin.","error.patchFailed":"Writing the profile configuration failed.","error.installFailed":"Installation failed. Try again.","error.timeout":"The request timed out. Try again.","error.unknown":"Something went wrong. Try again.","sources.dialogTitle":"Market sources","sources.dialogIntro":"Search, details, and install use the selected market source.","sources.existingTitle":"Configured sources","sources.addTitle":"Add a source","sources.add":"Add","sources.adding":"Adding…","sources.builtin":"Built-in","sources.builtinHint":"The built-in source is always present and cannot be removed.","sources.builtinTitle":"MCP Registry","sources.empty":"No market sources are available.","sources.indexHint":"A JSON index must declare format: 1. Only JSON index sources accept a local path (absolute, ~/..., or file://). Installation re-reads the server entry from that source.","sources.kindLabel":"Type","sources.kind.index":"JSON index","sources.kind.mcpRegistry":"MCP Registry compatible","sources.loading":"Loading market sources…","sources.manage":"Manage sources…","sources.openManager":"Manage sources","sources.removeLabel":"Remove market source {title}","sources.selectLabel":"Use market source {title}","sources.switcherLabel":"Select market source","sources.titleLabel":"Name","sources.titlePlaceholder":"For example: Team MCP","sources.urlLabel":"URL or local path","sources.urlPlaceholder":"https://example.com/mcp-index.json or ~/mcp-index.json","sources.using":"In use","search.market":"Market: {title}","installed.source":"Market: {title}","local.open":"Add local server","local.title":"Add a local MCP server","local.subtitle":"Point at an executable on this machine. The command runs without a shell; nothing is sent to a registry.","local.name":"Server name (optional)","local.namePlaceholder":"Generated from the command when empty","local.command":"Command","local.commandPlaceholder":"/usr/local/bin/my-mcp or npx","local.args":"Arguments (one per line)","local.argsPlaceholder":"-y\nmy-mcp-server","local.env":"Environment variables (KEY=VALUE, one per line)","local.envPlaceholder":"API_KEY=...\nDEBUG=1","local.cwd":"Working directory (optional)","local.cwdPlaceholder":"/Users/you/project","local.preview":"Check","local.previewing":"Checking…","local.install":"Install","local.installBusy":"Installing…","local.replace":"Replace and install","local.replaceBusy":"Replacing…","local.existing":"A server with this name is already installed.","local.available":"The command is available. Review the configuration before installing.","local.unavailable":"The command {command} is missing; installation will be refused.","local.config":"Configuration to write (secrets hidden)","local.success":"Installed","local.successApplied":"Configuration applied. The MCP server should load within a few seconds.","local.successRestart":"Configuration written. Restart DSH for it to take effect.","local.commandRequired":"Enter a command.","local.envInvalid":"Line {line} is not KEY=VALUE.","local.hint":"Environment values are stored in the active profile. The command is spawned directly, never through a shell.","local.viewInstalled":"View installed"}}
 
 /**
  * Pure browser helpers for the MCP Market panel.
@@ -177,11 +177,13 @@ function validateSourceDraft(draft) {
   if (title.length === 0) errors.title = 'sources.field.titleRequired'
   else if (title.length > MAX_SOURCE_TITLE) errors.title = 'sources.field.titleTooLong'
   const rawUrl = typeof draft?.url === 'string' ? draft.url.trim() : ''
+  const isIndex = draft?.kind === 'index'
+  const localIndex = isIndex && (rawUrl.startsWith('~/') || rawUrl.startsWith('/') || rawUrl.startsWith('file:'))
   if (rawUrl.length === 0) {
     errors.url = 'sources.field.urlRequired'
   } else if (rawUrl.length > MAX_SOURCE_URL) {
     errors.url = 'sources.field.urlInvalid'
-  } else {
+  } else if (!localIndex) {
     let parsed
     try {
       parsed = new URL(rawUrl)
@@ -1138,6 +1140,11 @@ body[data-ds-dark-theme] .dshmcp-avatar {
   max-height: min(82vh, 760px);
   overflow: auto;
 }
+.dshmcp-localBtn {
+  flex: none;
+  height: 40px;
+  border-radius: 12px;
+}
 .dshmcp-marketSelect {
   box-sizing: border-box;
   flex: none;
@@ -1732,7 +1739,7 @@ function SourceDialog({ t, open, data, error, busy, onClose, onRetry, onSelect, 
       h('input', {
         id: 'dshmcp-source-url',
         className: 'dshmcp-input',
-        type: 'url',
+        type: 'text',
         value: url,
         placeholder: t('sources.urlPlaceholder'),
         autoComplete: 'off',
@@ -1784,7 +1791,7 @@ function SourceDialog({ t, open, data, error, busy, onClose, onRetry, onSelect, 
 }
 
 /** Search form and result grid for the Discover view. */
-function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, onOpen, onRetry, sourcesData, activeSourceId, activeSourceTitle, sourcesLoading, onSelectSource, onManageSources, showManage }) {
+function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, onOpen, onRetry, sourcesData, activeSourceId, activeSourceTitle, sourcesLoading, onSelectSource, onManageSources, showManage, onOpenLocal }) {
   const hasServers = state.servers.length > 0
   const sources = Array.isArray(sourcesData?.sources) ? sourcesData.sources : []
   return h(React.Fragment, null,
@@ -1835,6 +1842,11 @@ function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, on
         onClick: onClear,
       }, h(CloseIcon, { size: 14 })),
     ),
+    onOpenLocal === undefined ? null : h('button', {
+      type: 'button',
+      className: 'dshmcp-btn dshmcp-localBtn',
+      onClick: onOpenLocal,
+    }, t('local.open')),
     h('span', { className: 'dshmcp-tabCount', 'aria-hidden': 'true' },
       state.busy ? h('span', { className: 'dshmcp-spinner' }) : null),
     ),
@@ -1951,6 +1963,247 @@ function InstallField({ t, field, value, error, onChange }) {
 }
 
 /** Install form with choice radio, secret/env fields, validation, and result. */
+/** Manually add a local stdio MCP server. */
+function LocalServerDialog({ t, open, onClose, onPreview, onInstall, onViewInstalled }) {
+  const [name, setName] = React.useState('')
+  const [command, setCommand] = React.useState('')
+  const [argsText, setArgsText] = React.useState('')
+  const [envText, setEnvText] = React.useState('')
+  const [cwd, setCwd] = React.useState('')
+  const [preview, setPreview] = React.useState(null)
+  const [result, setResult] = React.useState(null)
+  const [error, setError] = React.useState(null)
+  const [formError, setFormError] = React.useState(null)
+  const [busy, setBusy] = React.useState(false)
+  const busyRef = React.useRef(false)
+  const commandRef = React.useRef(null)
+
+  React.useEffect(() => { busyRef.current = busy }, [busy])
+
+  React.useEffect(() => {
+    if (!open) return undefined
+    setName('')
+    setCommand('')
+    setArgsText('')
+    setEnvText('')
+    setCwd('')
+    setPreview(null)
+    setResult(null)
+    setError(null)
+    setFormError(null)
+    setBusy(false)
+    const onKey = event => {
+      if (event.key === 'Escape' && !busyRef.current) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    const timer = setTimeout(() => { commandRef.current?.focus() }, 0)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      clearTimeout(timer)
+    }
+  }, [open])
+
+  if (!open) return null
+
+  const touch = setter => value => {
+    setter(value)
+    setPreview(null)
+    setResult(null)
+    setError(null)
+    setFormError(null)
+  }
+
+  const buildBody = () => {
+    const commandText = command.trim()
+    if (commandText === '') {
+      setFormError(t('local.commandRequired'))
+      return null
+    }
+    const args = argsText.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+    const env = {}
+    const lines = envText.split('\n')
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index].trim()
+      if (line === '') continue
+      const separator = line.indexOf('=')
+      if (separator <= 0) {
+        setFormError(formatTemplate(t('local.envInvalid'), { line: String(index + 1) }))
+        return null
+      }
+      env[line.slice(0, separator).trim()] = line.slice(separator + 1)
+    }
+    return {
+      serverName: name.trim() === '' ? undefined : name.trim(),
+      command: commandText,
+      args,
+      env,
+      cwd: cwd.trim() === '' ? undefined : cwd.trim(),
+    }
+  }
+
+  const check = async () => {
+    const body = buildBody()
+    if (body === null || busy) return
+    setBusy(true)
+    setError(null)
+    setResult(null)
+    try {
+      setPreview(await onPreview(body))
+    } catch (failure) {
+      setPreview(null)
+      setError(failure)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const install = async () => {
+    if (preview === null || busy) return
+    const body = buildBody()
+    if (body === null) return
+    setBusy(true)
+    setError(null)
+    try {
+      setResult(await onInstall({ ...body, replace: preview.existing === true }))
+      setPreview(null)
+    } catch (failure) {
+      setError(failure)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const field = (label, input) => h('label', { className: 'dshmcp-field' },
+    h('span', { className: 'dshmcp-label' }, label),
+    input,
+  )
+
+  return h('div', {
+    className: 'dshmcp-overlay',
+    onMouseDown: event => {
+      if (event.target === event.currentTarget && !busy) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshmcp-dialog dshmcp-dialogWide',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'dshmcp-local-title',
+  },
+  h('div', { className: 'dshmcp-panelHead' },
+    h('div', null,
+      h('h2', { className: 'dshmcp-dialogTitle', id: 'dshmcp-local-title' }, t('local.title')),
+      h('p', { className: 'dshmcp-panelHint' }, t('local.subtitle')),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshmcp-iconBtn',
+      'aria-label': t('action.close'),
+      onClick: onClose,
+      disabled: busy,
+    }, h(CloseIcon, { size: 15 })),
+  ),
+  result === null ? null : h(React.Fragment, null,
+    h(Callout, { tone: 'success' }, h('span', null,
+      h('strong', null, t('local.success')),
+      h('br'),
+      h('span', null, result.applied ? t('local.successApplied') : t('local.successRestart')),
+    )),
+    h('p', { className: 'dshmcp-hint' }, t('detail.installNoTools')),
+    h('div', { className: 'dshmcp-actions' },
+      Button({ variant: 'primary', onClick: onViewInstalled, children: t('local.viewInstalled') }),
+      Button({ onClick: onClose, children: t('action.done') }),
+    ),
+  ),
+  result !== null ? null : h(React.Fragment, null,
+    h('div', { className: 'dshmcp-fields' },
+      field(t('local.name'), h('input', {
+        className: 'dshmcp-input',
+        value: name,
+        placeholder: t('local.namePlaceholder'),
+        disabled: busy,
+        onChange: event => { touch(setName)(event.currentTarget.value) },
+      })),
+      field(t('local.command'), h('input', {
+        className: 'dshmcp-input',
+        ref: commandRef,
+        value: command,
+        placeholder: t('local.commandPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setCommand)(event.currentTarget.value) },
+      })),
+      field(t('local.args'), h('textarea', {
+        className: 'dshmcp-textarea',
+        rows: 3,
+        value: argsText,
+        placeholder: t('local.argsPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setArgsText)(event.currentTarget.value) },
+      })),
+      field(t('local.env'), h('textarea', {
+        className: 'dshmcp-textarea',
+        rows: 3,
+        value: envText,
+        placeholder: t('local.envPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setEnvText)(event.currentTarget.value) },
+      })),
+      field(t('local.cwd'), h('input', {
+        className: 'dshmcp-input',
+        value: cwd,
+        placeholder: t('local.cwdPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setCwd)(event.currentTarget.value) },
+      })),
+    ),
+    h('p', { className: 'dshmcp-hint' }, t('local.hint')),
+    formError === null ? null : h(Callout, { tone: 'warn' }, formError),
+    preview === null ? null : h(React.Fragment, null,
+      preview.existing === true ? h(Callout, { tone: 'warn' }, t('local.existing')) : null,
+      preview.available === false
+        ? h(Callout, { tone: 'warn' }, formatTemplate(t('local.unavailable'), { command: preview.command ?? command }))
+        : h(Callout, { tone: 'success' }, t('local.available')),
+      (preview.warnings ?? []).filter(code => code !== 'runtime-missing').length === 0 ? null
+        : h('div', { className: 'dshmcp-fields' },
+          (preview.warnings ?? []).filter(code => code !== 'runtime-missing').map(code => h('p', { key: code, className: 'dshmcp-hint' }, warningText(t, code)))),
+      preview.config === undefined || preview.config === null ? null : h('div', { className: 'dshmcp-section' },
+        h('div', { className: 'dshmcp-label' }, t('local.config')),
+        h('pre', { className: 'dshmcp-code' }, JSON.stringify(preview.config, null, 2)),
+      ),
+    ),
+    error === null ? null : h(Callout, { tone: 'error' }, h('span', null,
+      h('strong', null, t('detail.installFailed')),
+      h('br'),
+      h('span', null, errorText(t, error).message),
+      missingLines(t, error?.details).map((line, index) => h('div', { key: `${index}:${line}` }, line)),
+    )),
+    h('div', { className: 'dshmcp-actions' },
+      preview === null
+        ? Button({
+          variant: 'primary',
+          disabled: busy,
+          onClick: check,
+          children: busy ? t('local.previewing') : t('local.preview'),
+        })
+        : Button({
+          variant: 'primary',
+          disabled: busy || preview.available === false,
+          onClick: install,
+          children: busy
+            ? (preview.existing === true ? t('local.replaceBusy') : t('local.installBusy'))
+            : (preview.existing === true ? t('local.replace') : t('local.install')),
+        }),
+      preview === null ? null : Button({ onClick: () => { setPreview(null) }, disabled: busy, children: t('action.back') }),
+      Button({ onClick: onClose, disabled: busy, children: t('action.cancel') }),
+    ),
+  ),
+  ))
+}
+
 function InstallPanel({ t, registryName, previewState, onRetry, onSubmit, onClose, onViewInstalled }) {
   const preview = previewState.preview
   const [choiceKey, setChoiceKey] = React.useState('')
@@ -2410,6 +2663,7 @@ function createMcpMarketPage(boundT) {
     const [confirmRow, setConfirmRow] = React.useState(null)
     const [sourcesState, setSourcesState] = React.useState({ status: 'loading', data: null, error: null })
     const [sourcesOpen, setSourcesOpen] = React.useState(false)
+    const [localOpen, setLocalOpen] = React.useState(false)
     const [sourcesBusy, setSourcesBusy] = React.useState(false)
     const searchSequence = React.useRef(0)
     const detailSequence = React.useRef(0)
@@ -2661,6 +2915,24 @@ function createMcpMarketPage(boundT) {
       return result
     }, [activeSourceId, detailState.server, loadInstalled, push, t])
 
+    const previewLocalServer = React.useCallback(async body => requestJson('/api/local/preview', {
+      method: 'POST',
+      body,
+      timeoutMs: TIMEOUTS.preview,
+    }), [])
+
+    const installLocalServer = React.useCallback(async body => {
+      const result = await requestJson('/api/local/install', {
+        method: 'POST',
+        body,
+        timeoutMs: TIMEOUTS.mutation,
+      })
+      setLastFeedback(result)
+      push('success', result.applied ? t('toast.applied') : t('toast.restartRequired'))
+      await loadInstalled()
+      return result
+    }, [loadInstalled, push, t])
+
     const toggleRow = React.useCallback(async row => {
       setBusyRow(row.rowId)
       try {
@@ -2787,6 +3059,7 @@ function createMcpMarketPage(boundT) {
               onSelectSource: id => { void selectSource(id); },
               onManageSources: () => { setSourcesOpen(true); },
               showManage,
+              onOpenLocal: () => { setLocalOpen(true); },
             }),
       ),
       h(SourceDialog, {
@@ -2800,6 +3073,14 @@ function createMcpMarketPage(boundT) {
         onSelect: id => selectSource(id),
         onRemove: id => removeSource(id),
         onAdd: input => addSource(input),
+      }),
+      h(LocalServerDialog, {
+        t,
+        open: localOpen,
+        onClose: () => { setLocalOpen(false); },
+        onPreview: previewLocalServer,
+        onInstall: installLocalServer,
+        onViewInstalled: () => { setLocalOpen(false); setView('installed'); },
       }),
       h(ToastViewport, { t, toasts, onDismiss: dismiss }),
       h(ConfirmDialog, {

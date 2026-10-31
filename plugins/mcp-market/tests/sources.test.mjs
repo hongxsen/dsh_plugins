@@ -3,8 +3,8 @@ import test from 'node:test'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createSourceStore, normalizeSourcesDocument, builtinSourceDoc } from '../lib/sources.js'
-import { parseIndexDocument, searchIndexServers, findIndexServer } from '../lib/index-source.js'
+import { createSourceStore, normalizeSourcesDocument, builtinSourceDoc, normalizeSourceUrl } from '../lib/sources.js'
+import { parseIndexDocument, searchIndexServers, findIndexServer, fetchIndexDocument } from '../lib/index-source.js'
 import { createMarketService } from '../lib/service.js'
 
 const INDEX = JSON.stringify({
@@ -163,5 +163,25 @@ test('a custom mcp-registry base is used for search', async () => {
     const result = await service.search('echo', undefined, added.source.id)
     assert.equal(result.servers[0].name, 'acme/echo')
     assert.ok(calls.some(url => url.startsWith('https://mirror.test/v0/servers')))
+  } finally { await cleanup() }
+})
+
+test('a JSON index can be a local file path', async () => {
+  const { home, cleanup } = await tempEnv()
+  try {
+    const indexPath = join(home, 'mcp-index.json')
+    await writeFile(indexPath, INDEX)
+    assert.match(normalizeSourceUrl(indexPath, 'index'), /^file:/u)
+    assert.throws(() => normalizeSourceUrl(indexPath, 'mcp-registry'), error => error.code === 'sources/invalid')
+    const doc = await fetchIndexDocument(normalizeSourceUrl(indexPath, 'index'))
+    assert.equal(doc.servers[0].name, 'com.example/weather')
+    const store = createSourceStore({
+      dir: join(home, 'storages', 'dsh-mcp-market'),
+      fetchImpl: async () => { throw new Error('network must not be used') },
+    })
+    const added = await store.add({ kind: 'index', title: 'Local MCP', url: indexPath })
+    assert.match(added.source.url, /^file:/u)
+    const fetched = await fetchIndexDocument(added.source.url)
+    assert.equal(fetched.servers[0].name, 'com.example/weather')
   } finally { await cleanup() }
 })

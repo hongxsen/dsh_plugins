@@ -90,6 +90,7 @@ function renderRowLines(row) {
       lines.push('        args:')
       for (const arg of row.args ?? []) lines.push(`          - ${quoteScalar(arg)}`)
     }
+    if (typeof row.cwd === 'string' && row.cwd !== '') lines.push(`        cwd: ${quoteScalar(row.cwd)}`)
     const env = Object.entries(row.env ?? {})
     if (env.length > 0) {
       lines.push('        env:')

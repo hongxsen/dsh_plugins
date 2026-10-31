@@ -13,7 +13,8 @@
 ## 功能
 
 - **官方 Registry**：直接请求 `https://registry.modelcontextprotocol.io/v0/servers`，按关键词搜索、查看详情；结果缓存 5 分钟，离线、限流、超时都会给出可重试的错误。
-- **两种连接方式**：`streamable-http` 远程服务，或 npm / PyPI / OCI 的 stdio 本地进程（分别用 `npx` / `uvx` / `docker` 启动）。
+- **两种连接方式**：`streamable-http` 远程服务，或 stdio 本地进程；后者可以从 npm / PyPI / OCI 包生成（用 `npx` / `uvx` / `docker` 启动），也可以手动填入本机可执行文件。
+- **本地服务器**：发现页的「本地安装」可以填写命令、参数、环境变量和工作目录，直接写成本地 stdio 托管行，不经过 shell。
 - **安装前预检**：生成 `@deepseek-ai/dsh-mcp-client` 配置，收集必填请求头和环境变量，检查运行命令是否存在；预览里的敏感值始终打码。
 - **托管块写入**：只改当前 profile 的 `cordis.patch.yml` 中带标记的托管块；块外的行、注释、空行和结尾保持原样。首次修改前留一份一次性备份。
 - **启停与移除**：关闭的行从托管块中省略，但记录保留；移除只删除本插件管理的行。
@@ -81,7 +82,17 @@ dsh plugin --profile desktop remove @hongxsen/dsh-mcp-market
 
 条目也可以直接使用官方 Registry 的 `{ "server": { ... } }` 包装。安装/预览时会从当前市场源重新读取条目，不信任浏览器提交的 URL 或命令；`@deepseek-ai/dsh-mcp-client` 的配置仍按原有规则校验后写入受管区块，并记录来源名称。
 
-市场源保存在 `<DSH_HOME>/storages/dsh-mcp-market/sources.json`（权限 `0600`，内置源不可删除）。索引文档限制 2 MiB / 2000 条，缓存 5 分钟；地址只允许 `http(s)`，不能带用户名密码或 `#fragment`。SSE-only 条目仍会显示为“不支持”。
+市场源保存在 `<DSH_HOME>/storages/dsh-mcp-market/sources.json`（权限 `0600`，内置源不可删除）。索引文档限制 2 MiB / 2000 条，缓存 5 分钟；HTTP 地址只允许 `http(s)`，不能带用户名密码或 `#fragment`；JSON 索引类型还允许 `file://`、绝对路径或 `~/` 路径。SSE-only 条目仍会显示为“不支持”。
+
+## 本地 stdio 服务器 / Local stdio
+
+「发现」页搜索框右侧的「本地安装」用于添加不在任何注册表里的本地 MCP 服务器：
+
+- 填写可执行文件（绝对路径，或 PATH 里的命令）、参数（每行一个）、环境变量（`KEY=VALUE`，每行一个）和可选工作目录；
+- 服务器名称可选，留空时由命令名生成稳定名称；同名服务器需要勾选替换才会覆盖；
+- Host 会检查命令是否存在、工作目录是否为目录，然后写入当前 profile 的托管块；不经过 shell，也不会把命令发送给注册表；
+- 预览会显示将要写入的配置（环境变量值打码）、命令可用性和同名记录；安装按钮只在命令可用时开放；
+- 环境变量仍以明文保存在 profile patch 和 `servers.json` 中，和注册表安装一样受 `0600` 保护。
 
 ## 写入位置
 
@@ -109,7 +120,7 @@ dsh plugin --profile desktop remove @hongxsen/dsh-mcp-market
 # <<< dsh-mcp-market managed block
 ```
 
-- 本地进程用 `transport: stdio`、`command: npx|uvx|docker`、`args` 与可选的 `env`。
+- 本地进程用 `transport: stdio`、`command`、`args`、可选 `env` 与 `cwd`；从注册表安装时 command 由 `npx`/`uvx`/`docker` 生成，本地安装则由用户显式填写。
 - `serverName` 由 registry name 的末段 + 4 位稳定哈希组成（≤32 字符），重复安装同一服务器会复用同一个 `rowId`。
 - 写入是「临时文件 + rename」且串行化的；两个操作不会交错。
 - 备份只创建一次，不会覆盖你后来手动保存的版本。
@@ -118,10 +129,11 @@ dsh plugin --profile desktop remove @hongxsen/dsh-mcp-market
 
 - **第三方内容**：目录里的标题、描述、链接、包名、命令和请求头声明都来自第三方注册表。安装前请自行确认来源；安装后 MCP 服务器会以你的身份访问网络和本地资源。
 - **凭据是明文**：请求头和 `env` 值会明文写入 profile 的 `cordis.patch.yml`（0600）和 `servers.json`（0600）。不要在不信任的机器或共享 profile 里安装带密钥的服务器。
-- **不信任浏览器输入**：安装时 Host 端会按 registry name 重新拉取条目，客户端提交的 URL、命令、包名一律不采用；只允许 `http:`/`https:` URL 和固定的 `npx`/`uvx`/`docker` 命令，不经过 shell。
+- **不信任浏览器输入（注册表安装）**：从注册表安装时 Host 会按 registry name 重新拉取条目，客户端提交的 URL、命令、包名一律不采用；只允许 `http:`/`https:` URL 和固定的 `npx`/`uvx`/`docker` 命令，不经过 shell。本地安装使用独立的 `/api/local/*` 接口，command 由用户显式填写，仍由 Host 校验存在性与参数上限。
 - **输入校验**：每个请求头/环境变量值必须是字符串且 ≤ 8 KiB；请求头不能含换行；未知/危险键、非法环境变量名会被拒绝。
 - **路由边界**：API 只挂在 `/dsh-mcp-market` 前缀下，同源校验（Origin 与 Host 不一致返回 403）、POST 只接受 `application/json`、请求体上限 1 MiB、响应 `Cache-Control: no-store`。
-- **自定义源是显式信任边界**：市场源由用户手动添加，Host 会直接请求该地址（允许 `http(s)`，上限 2 MiB / 10 秒）。不要添加不受信任的内网地址；安装时仍会从该源重新读取条目并做配置校验。
+- **自定义源是显式信任边界**：市场源由用户手动添加，Host 会直接请求该地址（HTTP 源允许 `http(s)`，本机索引允许 `file://`/绝对路径/`~/`，上限 2 MiB / 10 秒）。不要添加不受信任的内网地址；安装时仍会从该源重新读取条目并做配置校验。
+- **本地命令是显式信任边界**：手动填写的 command 会被直接 spawn，不会经过 shell；请只填你信任的可执行文件。Host 会校验路径/命令存在、工作目录和参数上限，但不会沙箱化该进程。
 - **移除行为**：只删除 `servers.json` 里登记的行并重写托管块；托管块之外的行、其他插件、服务器自己的数据都不会被改动。
 
 ## HMR 与重启
@@ -154,7 +166,7 @@ index.js              Host 入口：注册 /dsh-mcp-market 前缀路由
 lib/http.js           请求校验、路由分发、JSON 错误信封
 lib/service.js        DSH 上下文绑定：profile、HMR、tools、运行时探测
 lib/registry.js       Registry 搜索/详情、规范化、5 分钟缓存
-lib/config.js         纯逻辑：args/env/header 构建、校验、打码、预览
+lib/config.js         纯逻辑：args/env/header 与本地 stdio 构建、校验、打码、预览
 lib/yaml.js           托管块渲染/替换/移除、外部行解析
 lib/patch.js          原子写入、一次性备份、串行队列
 lib/store.js          servers.json（0600）
@@ -167,7 +179,7 @@ build.mjs             把 model/ui/entry 与 locale 内联成 client.js
 client.js             构建产物（浏览器实际加载，必须提交）
 locale/{en,zh}.json   完整界面词典 + 插件页标题/描述
 icon.svg              插件页图标
-tests/*.test.mjs      纯逻辑、patch、路由、服务与 bundle 测试
+tests/*.test.mjs      纯逻辑、patch、路由、服务、本地安装与 bundle 测试
 ```
 
 ## 开发

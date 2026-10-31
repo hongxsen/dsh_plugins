@@ -6,8 +6,9 @@
  * layer re-fetches the entry, calls these builders, and writes the result; the
  * browser's values are validated here before they can reach a profile patch.
  */
+import { basename, isAbsolute } from 'node:path'
 import { mcpError, isPlainObject } from './errors.js'
-import { serverNameFor } from './slug.js'
+import { isServerName, serverNameFor } from './slug.js'
 
 /** Upper bound for one header or environment value, as UTF-8 bytes. */
 export const MAX_VALUE_BYTES = 8 * 1024
@@ -617,6 +618,7 @@ export function rowFromRecord(record) {
   } else {
     row.command = record.command
     row.args = Array.isArray(record.args) ? [...record.args] : []
+    if (typeof record.cwd === 'string' && record.cwd.length > 0) row.cwd = record.cwd
     if (isPlainObject(record.env)) row.env = { ...record.env }
   }
   return row
@@ -645,4 +647,99 @@ export function recordFromChoice(entry, built, timestamps) {
     if (isPlainObject(built.config.env)) record.env = { ...built.config.env }
   }
   return record
+}
+
+/**
+ * Validate a manually entered local stdio MCP server.
+ *
+ * This is deliberately narrower than a package entry: the user supplies the
+ * executable, its arguments, an optional environment map, and an optional
+ * working directory. No shell is involved; `command` is spawned directly.
+ *
+ * @param input - `{ serverName?, title?, command, args?, env?, cwd? }`.
+ * @returns `{ serverName, title, command, args, env, cwd, config, secretKeys }`.
+ * @throws ApiError `invalid-value` for malformed fields.
+ */
+export function normalizeLocalServer(input) {
+  if (!isPlainObject(input)) throw invalidValue('The local server configuration must be an object.')
+  const command = normalizeLocalString(input.command, 'command', 4096)
+  if (command === '') throw invalidValue('A command is required.')
+  if (command.includes('/') && !isAbsolute(command)) {
+    throw invalidValue('The command must be an absolute path or a command name on PATH.')
+  }
+  const args = normalizeLocalArgs(input.args)
+  const env = normalizeValues({ env: input.env }).env
+  const cwd = input.cwd === undefined || input.cwd === null || input.cwd === ''
+    ? undefined
+    : normalizeLocalString(input.cwd, 'cwd', 4096)
+  if (cwd !== undefined && !isAbsolute(cwd)) throw invalidValue('The working directory must be absolute.')
+  let serverName
+  if (input.serverName !== undefined && input.serverName !== null && input.serverName !== '') {
+    if (!isServerName(input.serverName)) throw invalidValue('The server name must match [A-Za-z0-9_-]{1,32}.')
+    serverName = input.serverName
+  } else {
+    serverName = serverNameFor(`local/${basename(command)}`)
+  }
+  const title = input.title === undefined || input.title === null || input.title === ''
+    ? serverName
+    : normalizeLocalString(input.title, 'title', 80)
+  const config = {
+    serverName,
+    transport: 'stdio',
+    command,
+    args,
+    ...(Object.keys(env).length === 0 ? {} : { env }),
+    ...(cwd === undefined ? {} : { cwd }),
+  }
+  const secretKeys = Object.keys(env).filter(isSecretName)
+  return { serverName, title, command, args, env, cwd, config, secretKeys }
+}
+
+/** Trimmed, control-character-free local field. */
+function normalizeLocalString(value, field, maxLength) {
+  if (typeof value !== 'string') throw invalidValue(`The ${field} must be a string.`)
+  const text = value.trim()
+  if (text.length > maxLength) throw invalidValue(`The ${field} is too long.`, { maxLength })
+  if (/[\u0000\r\n]/u.test(text)) throw invalidValue(`The ${field} contains an invalid control character.`)
+  return text
+}
+
+/** Validate one argument list. */
+function normalizeLocalArgs(value) {
+  if (value === undefined || value === null) return []
+  if (!Array.isArray(value)) throw invalidValue('The arguments must be an array.')
+  if (value.length > 64) throw invalidValue('Too many arguments.', { max: 64 })
+  return value.map((arg, index) => {
+    if (typeof arg !== 'string') throw invalidValue(`Argument ${index + 1} must be a string.`)
+    if (arg.length > 4096) throw invalidValue(`Argument ${index + 1} is too long.`)
+    if (arg.includes('\u0000')) throw invalidValue(`Argument ${index + 1} contains a NUL character.`)
+    return arg
+  })
+}
+
+/** Build the browser preview for a local stdio server. */
+export function previewLocalServer(input, { available = true, existing = false } = {}) {
+  const normalized = normalizeLocalServer(input)
+  const warnings = []
+  if (normalized.secretKeys.length > 0) warnings.push('secret-in-profile')
+  if (!available) warnings.push('runtime-missing')
+  return {
+    kind: 'local',
+    transport: 'stdio',
+    serverName: normalized.serverName,
+    title: normalized.title,
+    command: normalized.command,
+    args: normalized.args,
+    cwd: normalized.cwd ?? null,
+    env: Object.keys(normalized.env).map(name => ({ name, secret: isSecretName(name), required: false })),
+    headers: [],
+    warnings,
+    blocked: [],
+    available,
+    runtimeMissing: !available,
+    existing,
+    choices: [],
+    config: redactConfig(normalized.config, normalized.secretKeys),
+    secretKeys: normalized.secretKeys,
+  }
 }

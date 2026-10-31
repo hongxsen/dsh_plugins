@@ -13,7 +13,9 @@
  */
 import { randomBytes } from 'node:crypto'
 import { chmod, mkdir, open, readFile, rename, unlink } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { homedir } from 'node:os'
+import { dirname, isAbsolute, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   BUILTIN_SOURCE,
   MAX_SOURCE_TITLE_LENGTH,
@@ -104,13 +106,23 @@ export function validateSourceTitle(title) {
  * @returns the normalized URL.
  * @throws MarketError `sources/invalid`.
  */
-export function validateSourceUrl(url) {
+export function validateSourceUrl(url, kind = undefined) {
   const text = typeof url === 'string' ? url.trim() : ''
   if (text === '' || text.length > MAX_SOURCE_URL_LENGTH) {
     throw invalid('The source URL must be 1-2048 characters', {
       field: 'url',
       maxLength: MAX_SOURCE_URL_LENGTH,
     })
+  }
+  // A local JSON index is the one source kind that may live on disk. Accept
+  // an absolute path, a `~/...` path, or a `file:` URL and store it in
+  // canonical `file:` form. Remote-compatible sources stay http(s)-only.
+  const local = localIndexUrl(text)
+  if (local !== null) {
+    if (kind !== 'index') {
+      throw invalid('Local paths are only supported for JSON index sources', { field: 'url' })
+    }
+    return local
   }
   let parsed
   try {
@@ -119,7 +131,7 @@ export function validateSourceUrl(url) {
     throw invalid('The source URL must be absolute', { field: 'url' })
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw invalid('The source URL must use http or https', { field: 'url' })
+    throw invalid('The source URL must use http, https, or a local path', { field: 'url' })
   }
   if (parsed.username !== '' || parsed.password !== '') {
     throw invalid('The source URL must not contain credentials', { field: 'url' })
@@ -131,6 +143,36 @@ export function validateSourceUrl(url) {
     throw invalid('The source URL must include a host', { field: 'url' })
   }
   return parsed.href
+}
+
+/**
+ * Canonicalize a local index path, or return `null` when the value is not a
+ * local path.
+ * @param text - absolute path, `~/...`, or `file:` URL.
+ * @returns a `file:` URL, or `null`.
+ */
+function localIndexUrl(text) {
+  const expanded = text === '~' || text.startsWith('~/') ? join(homedir(), text.slice(2)) : text
+  if (isAbsolute(expanded)) return pathToFileURL(expanded).href
+  if (!expanded.startsWith('file:')) return null
+  let parsed
+  try {
+    parsed = new URL(expanded)
+  } catch {
+    throw invalid('The local source path is not a valid file URL', { field: 'url' })
+  }
+  if (parsed.protocol !== 'file:') return null
+  if (parsed.hostname !== '' && parsed.hostname !== 'localhost') {
+    throw invalid('The local source file URL must not name a remote host', { field: 'url' })
+  }
+  if (parsed.hash !== '') {
+    throw invalid('The source URL must not contain a fragment', { field: 'url' })
+  }
+  try {
+    return pathToFileURL(fileURLToPath(parsed)).href
+  } catch {
+    throw invalid('The local source path is not valid', { field: 'url' })
+  }
 }
 
 /**
@@ -165,7 +207,7 @@ export function sanitizeSourceStore(document) {
     try {
       kind = validateSourceKind(raw.kind)
       title = validateSourceTitle(raw.title)
-      url = validateSourceUrl(raw.url)
+      url = validateSourceUrl(raw.url, kind)
     } catch {
       continue
     }
@@ -362,7 +404,7 @@ export function createSourceStore(options = {}) {
   async function add(input) {
     const kind = validateSourceKind(input?.kind)
     const title = validateSourceTitle(input?.title)
-    const url = validateSourceUrl(input?.url)
+    const url = validateSourceUrl(input?.url, kind)
     let indexDocument
     if (kind === 'index') {
       const text = await fetchSourceIndex(fetchImpl, url)

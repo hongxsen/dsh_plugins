@@ -5,6 +5,8 @@
  * every request has a timeout, and failures become `skills/fetch-failed` (or
  * `skills/too-large`) so the routes can answer without leaking a stack.
  */
+import { readFile, stat } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { MarketError } from './errors.js'
 import {
   FETCH_TIMEOUT_MS,
@@ -18,7 +20,7 @@ import {
 import { validateSkillId, validateSource } from './validate.js'
 
 /** User-Agent GitHub and skills.sh both accept. */
-export const USER_AGENT = 'dsh-skills-market/0.2.0'
+export const USER_AGENT = 'dsh-skills-market/0.3.0'
 
 /** Default cap for JSON/HTML responses. */
 const DEFAULT_MAX_BYTES = 8 * 1024 * 1024
@@ -287,6 +289,22 @@ export async function searchSkills(fetchImpl, query, base = SKILLS_SITE) {
  * @throws MarketError `sources/fetch-failed` or `sources/invalid-index`.
  */
 export async function fetchSourceIndex(fetchImpl, url) {
+  if (typeof url === 'string' && url.startsWith('file:')) {
+    const path = fileURLToPath(url)
+    try {
+      const info = await stat(path)
+      if (!info.isFile()) throw new MarketError('sources/fetch-failed', 'The local index path is not a file', { path })
+      if (info.size > INDEX_MAX_BYTES) {
+        throw new MarketError('sources/invalid-index', 'The index document is too large', { maxBytes: INDEX_MAX_BYTES })
+      }
+      return await readFile(path, 'utf8')
+    } catch (error) {
+      if (error instanceof MarketError) throw error
+      throw new MarketError('sources/fetch-failed', 'The local index file could not be read', {
+        reason: typeof error?.code === 'string' ? error.code : 'read',
+      })
+    }
+  }
   let result
   try {
     result = await requestBuffer(fetchImpl, url, {

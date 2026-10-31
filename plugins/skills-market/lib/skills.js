@@ -28,6 +28,7 @@ import {
   searchIndexSkills,
   searchResultOf,
 } from './index-source.js'
+import { previewLocalSkill } from './local.js'
 import { scanInstalledSkills, skillExists } from './installed.js'
 import { runPool } from './pool.js'
 import { displayPath, resolveDshHome, skillsRootOf } from './paths.js'
@@ -384,6 +385,15 @@ export function createSkillsMarket(options = {}) {
   }
 
   /**
+   * Stage a preview from a local directory or SKILL.md file.
+   * @param inputPath - absolute path or `~/...`.
+   * @returns the local preview.
+   */
+  async function previewLocal(inputPath) {
+    return previewLocalSkill({ dshHome: resolveHome(), inputPath, now: now() })
+  }
+
+  /**
    * Install a previously staged preview.
    * @param input - `{ token, replace }`.
    * @returns `{ installed: true, name }`.
@@ -489,6 +499,7 @@ export function createSkillsMarket(options = {}) {
     search,
     detail,
     preview,
+    previewLocal,
     install,
     installed,
     remove,

@@ -288,7 +288,7 @@ export function createRegistryClient(options = {}) {
         method: 'GET',
         headers: {
           accept: 'application/json',
-          'user-agent': 'dsh-mcp-market/0.2.0 (+https://github.com/hongxsen/dsh_plugins)',
+          'user-agent': 'dsh-mcp-market/0.3.0 (+https://github.com/hongxsen/dsh_plugins)',
         },
         signal: AbortSignal.timeout(timeoutMs),
       })

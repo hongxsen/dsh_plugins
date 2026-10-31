@@ -10,6 +10,8 @@
  * malformed is retried on the next request instead of being remembered as a
  * permanent failure.
  */
+import { readFile, stat } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { isPlainObject, sourcesError } from './errors.js'
 import { normalizeServer } from './registry.js'
 
@@ -32,7 +34,7 @@ export const INDEX_CACHE_TTL_MS = 5 * 60 * 1000
 export const INDEX_SEARCH_LIMIT = 30
 
 /** User agent shared by the bounded fetchers. */
-const USER_AGENT = 'dsh-mcp-market/0.2.0 (+https://github.com/hongxsen/dsh_plugins)'
+const USER_AGENT = 'dsh-mcp-market/0.3.0 (+https://github.com/hongxsen/dsh_plugins)'
 
 /** Case-insensitive title-then-name ordering used by the index browser. */
 function compareServers(a, b) {
@@ -99,6 +101,28 @@ export async function fetchIndexDocument(url, options = {}) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch
   const timeoutMs = options.timeoutMs ?? INDEX_TIMEOUT_MS
   const maxBytes = options.maxBytes ?? MAX_INDEX_BYTES
+  if (typeof url === 'string' && url.startsWith('file:')) {
+    const path = fileURLToPath(url)
+    let text
+    try {
+      const info = await stat(path)
+      if (!info.isFile()) throw sourcesError('fetch-failed', 'The local index path is not a file.', 400, { path })
+      if (info.size > maxBytes) throw sourcesError('fetch-failed', 'The JSON index file is too large.', 413, { maxBytes })
+      text = await readFile(path, 'utf8')
+    } catch (error) {
+      if (typeof error?.code === 'string' && error.code.startsWith('sources/')) throw error
+      throw sourcesError('fetch-failed', 'The local JSON index file could not be read.', 502, {
+        reason: typeof error?.code === 'string' ? error.code : 'read',
+      })
+    }
+    let payload
+    try {
+      payload = JSON.parse(text)
+    } catch {
+      throw sourcesError('invalid-index', 'The JSON index is not valid JSON.', 400)
+    }
+    return parseIndexDocument(payload)
+  }
   if (typeof fetchImpl !== 'function') {
     throw sourcesError('fetch-failed', 'A fetch implementation is required.', 500)
   }

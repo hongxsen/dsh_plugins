@@ -420,6 +420,7 @@ export function createApiClient(base = API_BASE, options = {}) {
       timeoutMs: TIMEOUTS.detail,
     }),
     preview: (input) => request('/api/preview', { method: 'POST', body: input, timeoutMs: TIMEOUTS.preview }),
+    previewLocal: (path) => request('/api/local/preview', { method: 'POST', body: { path }, timeoutMs: TIMEOUTS.preview }),
     install: (input) => request('/api/install', { method: 'POST', body: input, timeoutMs: TIMEOUTS.mutation }),
     installed: () => request('/api/installed', { timeoutMs: TIMEOUTS.mutation }),
     remove: (name) => request('/api/remove', { method: 'POST', body: { name }, timeoutMs: TIMEOUTS.mutation }),

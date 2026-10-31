@@ -27,6 +27,7 @@ export const ERROR_STATUS = Object.freeze({
   'skills/fetch-failed': 502,
   'skills/not-found': 404,
   'skills/invalid-skill': 400,
+  'skills/invalid-path': 400,
   'skills/too-large': 413,
   'skills/exists': 409,
   'skills/not-managed': 403,

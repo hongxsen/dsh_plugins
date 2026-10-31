@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -141,4 +141,20 @@ test('sanitizeSourceStore keeps the builtin and drops malformed customs', () => 
   })
   assert.equal(sanitized.selected, 'skills-sh')
   assert.deepEqual(sanitized.sources.map(source => source.id), ['skills-sh', 'custom-11111111'])
+})
+
+
+test('a JSON index can be a local file path', async () => {
+  const { home, cleanup } = await tempHome()
+  try {
+    const indexPath = join(home, 'skills-index.json')
+    await writeFile(indexPath, INDEX)
+    assert.match(validateSourceUrl(indexPath, 'index'), /^file:/u)
+    assert.throws(() => validateSourceUrl(indexPath, 'skills-sh'), error => error.code === 'sources/invalid')
+    const service = createSkillsMarket({ dshHome: home, fetchImpl: async () => { throw new Error('network must not be used') } })
+    const added = await service.addSource({ kind: 'index', title: 'Local Skills', url: indexPath })
+    assert.match(added.source.url, /^file:/u)
+    const result = await service.search('design', added.source.id)
+    assert.equal(result.skills[0].name, 'frontend-design')
+  } finally { await cleanup() }
 })

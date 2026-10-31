@@ -815,6 +815,11 @@ body[data-ds-dark-theme] .dshmcp-avatar {
   max-height: min(82vh, 760px);
   overflow: auto;
 }
+.dshmcp-localBtn {
+  flex: none;
+  height: 40px;
+  border-radius: 12px;
+}
 .dshmcp-marketSelect {
   box-sizing: border-box;
   flex: none;
@@ -1409,7 +1414,7 @@ function SourceDialog({ t, open, data, error, busy, onClose, onRetry, onSelect, 
       h('input', {
         id: 'dshmcp-source-url',
         className: 'dshmcp-input',
-        type: 'url',
+        type: 'text',
         value: url,
         placeholder: t('sources.urlPlaceholder'),
         autoComplete: 'off',
@@ -1461,7 +1466,7 @@ function SourceDialog({ t, open, data, error, busy, onClose, onRetry, onSelect, 
 }
 
 /** Search form and result grid for the Discover view. */
-function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, onOpen, onRetry, sourcesData, activeSourceId, activeSourceTitle, sourcesLoading, onSelectSource, onManageSources, showManage }) {
+function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, onOpen, onRetry, sourcesData, activeSourceId, activeSourceTitle, sourcesLoading, onSelectSource, onManageSources, showManage, onOpenLocal }) {
   const hasServers = state.servers.length > 0
   const sources = Array.isArray(sourcesData?.sources) ? sourcesData.sources : []
   return h(React.Fragment, null,
@@ -1512,6 +1517,11 @@ function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, on
         onClick: onClear,
       }, h(CloseIcon, { size: 14 })),
     ),
+    onOpenLocal === undefined ? null : h('button', {
+      type: 'button',
+      className: 'dshmcp-btn dshmcp-localBtn',
+      onClick: onOpenLocal,
+    }, t('local.open')),
     h('span', { className: 'dshmcp-tabCount', 'aria-hidden': 'true' },
       state.busy ? h('span', { className: 'dshmcp-spinner' }) : null),
     ),
@@ -1628,6 +1638,247 @@ function InstallField({ t, field, value, error, onChange }) {
 }
 
 /** Install form with choice radio, secret/env fields, validation, and result. */
+/** Manually add a local stdio MCP server. */
+function LocalServerDialog({ t, open, onClose, onPreview, onInstall, onViewInstalled }) {
+  const [name, setName] = React.useState('')
+  const [command, setCommand] = React.useState('')
+  const [argsText, setArgsText] = React.useState('')
+  const [envText, setEnvText] = React.useState('')
+  const [cwd, setCwd] = React.useState('')
+  const [preview, setPreview] = React.useState(null)
+  const [result, setResult] = React.useState(null)
+  const [error, setError] = React.useState(null)
+  const [formError, setFormError] = React.useState(null)
+  const [busy, setBusy] = React.useState(false)
+  const busyRef = React.useRef(false)
+  const commandRef = React.useRef(null)
+
+  React.useEffect(() => { busyRef.current = busy }, [busy])
+
+  React.useEffect(() => {
+    if (!open) return undefined
+    setName('')
+    setCommand('')
+    setArgsText('')
+    setEnvText('')
+    setCwd('')
+    setPreview(null)
+    setResult(null)
+    setError(null)
+    setFormError(null)
+    setBusy(false)
+    const onKey = event => {
+      if (event.key === 'Escape' && !busyRef.current) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    const timer = setTimeout(() => { commandRef.current?.focus() }, 0)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      clearTimeout(timer)
+    }
+  }, [open])
+
+  if (!open) return null
+
+  const touch = setter => value => {
+    setter(value)
+    setPreview(null)
+    setResult(null)
+    setError(null)
+    setFormError(null)
+  }
+
+  const buildBody = () => {
+    const commandText = command.trim()
+    if (commandText === '') {
+      setFormError(t('local.commandRequired'))
+      return null
+    }
+    const args = argsText.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+    const env = {}
+    const lines = envText.split('\n')
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index].trim()
+      if (line === '') continue
+      const separator = line.indexOf('=')
+      if (separator <= 0) {
+        setFormError(formatTemplate(t('local.envInvalid'), { line: String(index + 1) }))
+        return null
+      }
+      env[line.slice(0, separator).trim()] = line.slice(separator + 1)
+    }
+    return {
+      serverName: name.trim() === '' ? undefined : name.trim(),
+      command: commandText,
+      args,
+      env,
+      cwd: cwd.trim() === '' ? undefined : cwd.trim(),
+    }
+  }
+
+  const check = async () => {
+    const body = buildBody()
+    if (body === null || busy) return
+    setBusy(true)
+    setError(null)
+    setResult(null)
+    try {
+      setPreview(await onPreview(body))
+    } catch (failure) {
+      setPreview(null)
+      setError(failure)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const install = async () => {
+    if (preview === null || busy) return
+    const body = buildBody()
+    if (body === null) return
+    setBusy(true)
+    setError(null)
+    try {
+      setResult(await onInstall({ ...body, replace: preview.existing === true }))
+      setPreview(null)
+    } catch (failure) {
+      setError(failure)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const field = (label, input) => h('label', { className: 'dshmcp-field' },
+    h('span', { className: 'dshmcp-label' }, label),
+    input,
+  )
+
+  return h('div', {
+    className: 'dshmcp-overlay',
+    onMouseDown: event => {
+      if (event.target === event.currentTarget && !busy) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshmcp-dialog dshmcp-dialogWide',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'dshmcp-local-title',
+  },
+  h('div', { className: 'dshmcp-panelHead' },
+    h('div', null,
+      h('h2', { className: 'dshmcp-dialogTitle', id: 'dshmcp-local-title' }, t('local.title')),
+      h('p', { className: 'dshmcp-panelHint' }, t('local.subtitle')),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshmcp-iconBtn',
+      'aria-label': t('action.close'),
+      onClick: onClose,
+      disabled: busy,
+    }, h(CloseIcon, { size: 15 })),
+  ),
+  result === null ? null : h(React.Fragment, null,
+    h(Callout, { tone: 'success' }, h('span', null,
+      h('strong', null, t('local.success')),
+      h('br'),
+      h('span', null, result.applied ? t('local.successApplied') : t('local.successRestart')),
+    )),
+    h('p', { className: 'dshmcp-hint' }, t('detail.installNoTools')),
+    h('div', { className: 'dshmcp-actions' },
+      Button({ variant: 'primary', onClick: onViewInstalled, children: t('local.viewInstalled') }),
+      Button({ onClick: onClose, children: t('action.done') }),
+    ),
+  ),
+  result !== null ? null : h(React.Fragment, null,
+    h('div', { className: 'dshmcp-fields' },
+      field(t('local.name'), h('input', {
+        className: 'dshmcp-input',
+        value: name,
+        placeholder: t('local.namePlaceholder'),
+        disabled: busy,
+        onChange: event => { touch(setName)(event.currentTarget.value) },
+      })),
+      field(t('local.command'), h('input', {
+        className: 'dshmcp-input',
+        ref: commandRef,
+        value: command,
+        placeholder: t('local.commandPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setCommand)(event.currentTarget.value) },
+      })),
+      field(t('local.args'), h('textarea', {
+        className: 'dshmcp-textarea',
+        rows: 3,
+        value: argsText,
+        placeholder: t('local.argsPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setArgsText)(event.currentTarget.value) },
+      })),
+      field(t('local.env'), h('textarea', {
+        className: 'dshmcp-textarea',
+        rows: 3,
+        value: envText,
+        placeholder: t('local.envPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setEnvText)(event.currentTarget.value) },
+      })),
+      field(t('local.cwd'), h('input', {
+        className: 'dshmcp-input',
+        value: cwd,
+        placeholder: t('local.cwdPlaceholder'),
+        disabled: busy,
+        spellCheck: false,
+        onChange: event => { touch(setCwd)(event.currentTarget.value) },
+      })),
+    ),
+    h('p', { className: 'dshmcp-hint' }, t('local.hint')),
+    formError === null ? null : h(Callout, { tone: 'warn' }, formError),
+    preview === null ? null : h(React.Fragment, null,
+      preview.existing === true ? h(Callout, { tone: 'warn' }, t('local.existing')) : null,
+      preview.available === false
+        ? h(Callout, { tone: 'warn' }, formatTemplate(t('local.unavailable'), { command: preview.command ?? command }))
+        : h(Callout, { tone: 'success' }, t('local.available')),
+      (preview.warnings ?? []).filter(code => code !== 'runtime-missing').length === 0 ? null
+        : h('div', { className: 'dshmcp-fields' },
+          (preview.warnings ?? []).filter(code => code !== 'runtime-missing').map(code => h('p', { key: code, className: 'dshmcp-hint' }, warningText(t, code)))),
+      preview.config === undefined || preview.config === null ? null : h('div', { className: 'dshmcp-section' },
+        h('div', { className: 'dshmcp-label' }, t('local.config')),
+        h('pre', { className: 'dshmcp-code' }, JSON.stringify(preview.config, null, 2)),
+      ),
+    ),
+    error === null ? null : h(Callout, { tone: 'error' }, h('span', null,
+      h('strong', null, t('detail.installFailed')),
+      h('br'),
+      h('span', null, errorText(t, error).message),
+      missingLines(t, error?.details).map((line, index) => h('div', { key: `${index}:${line}` }, line)),
+    )),
+    h('div', { className: 'dshmcp-actions' },
+      preview === null
+        ? Button({
+          variant: 'primary',
+          disabled: busy,
+          onClick: check,
+          children: busy ? t('local.previewing') : t('local.preview'),
+        })
+        : Button({
+          variant: 'primary',
+          disabled: busy || preview.available === false,
+          onClick: install,
+          children: busy
+            ? (preview.existing === true ? t('local.replaceBusy') : t('local.installBusy'))
+            : (preview.existing === true ? t('local.replace') : t('local.install')),
+        }),
+      preview === null ? null : Button({ onClick: () => { setPreview(null) }, disabled: busy, children: t('action.back') }),
+      Button({ onClick: onClose, disabled: busy, children: t('action.cancel') }),
+    ),
+  ),
+  ))
+}
+
 function InstallPanel({ t, registryName, previewState, onRetry, onSubmit, onClose, onViewInstalled }) {
   const preview = previewState.preview
   const [choiceKey, setChoiceKey] = React.useState('')
@@ -2087,6 +2338,7 @@ function createMcpMarketPage(boundT) {
     const [confirmRow, setConfirmRow] = React.useState(null)
     const [sourcesState, setSourcesState] = React.useState({ status: 'loading', data: null, error: null })
     const [sourcesOpen, setSourcesOpen] = React.useState(false)
+    const [localOpen, setLocalOpen] = React.useState(false)
     const [sourcesBusy, setSourcesBusy] = React.useState(false)
     const searchSequence = React.useRef(0)
     const detailSequence = React.useRef(0)
@@ -2338,6 +2590,24 @@ function createMcpMarketPage(boundT) {
       return result
     }, [activeSourceId, detailState.server, loadInstalled, push, t])
 
+    const previewLocalServer = React.useCallback(async body => requestJson('/api/local/preview', {
+      method: 'POST',
+      body,
+      timeoutMs: TIMEOUTS.preview,
+    }), [])
+
+    const installLocalServer = React.useCallback(async body => {
+      const result = await requestJson('/api/local/install', {
+        method: 'POST',
+        body,
+        timeoutMs: TIMEOUTS.mutation,
+      })
+      setLastFeedback(result)
+      push('success', result.applied ? t('toast.applied') : t('toast.restartRequired'))
+      await loadInstalled()
+      return result
+    }, [loadInstalled, push, t])
+
     const toggleRow = React.useCallback(async row => {
       setBusyRow(row.rowId)
       try {
@@ -2464,6 +2734,7 @@ function createMcpMarketPage(boundT) {
               onSelectSource: id => { void selectSource(id); },
               onManageSources: () => { setSourcesOpen(true); },
               showManage,
+              onOpenLocal: () => { setLocalOpen(true); },
             }),
       ),
       h(SourceDialog, {
@@ -2477,6 +2748,14 @@ function createMcpMarketPage(boundT) {
         onSelect: id => selectSource(id),
         onRemove: id => removeSource(id),
         onAdd: input => addSource(input),
+      }),
+      h(LocalServerDialog, {
+        t,
+        open: localOpen,
+        onClose: () => { setLocalOpen(false); },
+        onPreview: previewLocalServer,
+        onInstall: installLocalServer,
+        onViewInstalled: () => { setLocalOpen(false); setView('installed'); },
       }),
       h(ToastViewport, { t, toasts, onDismiss: dismiss }),
       h(ConfirmDialog, {

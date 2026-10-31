@@ -237,3 +237,36 @@ test('search and detail accept a source id', async () => {
     ['detail', 'acme/echo', 'custom-00000000'],
   ])
 })
+
+test('local stdio endpoints dispatch to the service', async () => {
+  const calls = []
+  const { service } = stubService({
+    previewLocal: async body => {
+      calls.push(['previewLocal', body])
+      return { kind: 'local', command: body.command, available: true }
+    },
+    installLocal: async body => {
+      calls.push(['installLocal', body])
+      return { installed: true, applied: true, restartRequired: false }
+    },
+  })
+  const handler = createRequestHandler({ service })
+  let response = fakeResponse()
+  await handler(fakeRequest({
+    method: 'POST',
+    url: '/dsh-mcp-market/api/local/preview',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ command: '/bin/echo', args: ['hi'] }),
+  }), response)
+  assert.equal(response.statusCode, 200)
+  assert.equal(JSON.parse(response.body).kind, 'local')
+  response = fakeResponse()
+  await handler(fakeRequest({
+    method: 'POST',
+    url: '/dsh-mcp-market/api/local/install',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ serverName: 'local_echo', command: '/bin/echo' }),
+  }), response)
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(calls.map(call => call[0]), ['previewLocal', 'installLocal'])
+})

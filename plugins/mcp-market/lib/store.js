@@ -70,6 +70,9 @@ export function normalizeRecord(raw) {
     if (typeof raw.command !== 'string') return null
     record.command = raw.command
     record.args = Array.isArray(raw.args) ? raw.args.filter(arg => typeof arg === 'string') : []
+    if (typeof raw.cwd === 'string' && raw.cwd.length > 0 && raw.cwd.length <= 4096 && !raw.cwd.includes('\u0000')) {
+      record.cwd = raw.cwd
+    }
     const env = normalizeStringMap(raw.env)
     if (env !== undefined) record.env = env
   }

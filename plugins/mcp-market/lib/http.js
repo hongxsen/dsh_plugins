@@ -32,7 +32,9 @@ const ROUTES = new Map([
   ['GET /api/search', 'search'],
   ['GET /api/detail', 'detail'],
   ['POST /api/preview', 'preview'],
+  ['POST /api/local/preview', 'previewLocal'],
   ['POST /api/install', 'install'],
+  ['POST /api/local/install', 'installLocal'],
   ['GET /api/installed', 'installed'],
   ['POST /api/toggle', 'toggle'],
   ['POST /api/remove', 'remove'],
@@ -172,13 +174,17 @@ export function createRequestHandler({ service, logger } = {}) {
         throw new ApiError('request/not-found', 'API endpoint not found.', 404)
       }
 
-      if (method === 'POST' && (route === 'preview' || route === 'install' || route === 'toggle' || route === 'remove' || route === 'sourceAction')) {
+      if (method === 'POST' && (route === 'preview' || route === 'install' || route === 'previewLocal' || route === 'installLocal' || route === 'toggle' || route === 'remove' || route === 'sourceAction')) {
         const body = await readJsonBody(req)
         switch (route) {
           case 'preview':
             return sendJson(res, 200, await service.preview(body.registryName, body.source))
           case 'install':
             return sendJson(res, 200, await service.install(body))
+          case 'previewLocal':
+            return sendJson(res, 200, await service.previewLocal(body))
+          case 'installLocal':
+            return sendJson(res, 200, await service.installLocal(body))
           case 'toggle':
             return sendJson(res, 200, await service.toggle(body))
           case 'remove':
