@@ -15,8 +15,8 @@ https://hongxsen.github.io/dsh_plugins/index.json
 | 插件 | 说明 | 版本 | 目录 |
 |---|---|---|---|
 | **壁纸** `@hongxsen/dsh-wallpaper` | 在设置里切换 5 张内置壁纸，或用你自己的图片；界面变成磨砂玻璃让壁纸透出来，深浅色自动换画 | 0.2.0 | [plugins/wallpaper](plugins/wallpaper) |
-| **技能市场** `@hongxsen/dsh-skills-market` | 从 skills.sh 搜索社区技能，预览全部文件后安装到 `~/.dsh/skills`，并管理已安装技能 | 0.1.0 | [plugins/skills-market](plugins/skills-market) |
-| **MCP 市场** `@hongxsen/dsh-mcp-market` | 搜索官方 MCP Registry，按需填写密钥后把服务器写入当前配置，并管理启停 | 0.1.0 | [plugins/mcp-market](plugins/mcp-market) |
+| **技能市场** `@hongxsen/dsh-skills-market` | 从 skills.sh 或自定义 JSON/skills.sh 市场源搜索技能，预览全部文件后安装到 `~/.dsh/skills`，并管理已安装技能 | 0.2.0 | [plugins/skills-market](plugins/skills-market) |
+| **MCP 市场** `@hongxsen/dsh-mcp-market` | 从官方 MCP Registry 或自定义 JSON/Registry 市场源搜索服务器，按需填写密钥后写入当前配置，并管理启停 | 0.2.0 | [plugins/mcp-market](plugins/mcp-market) |
 | **人机双写** `@hongxsen/dsh-co-write` | 在对话或工作区文件里选中文字，就地评论；编号引用随下一条消息提交 | 0.1.0 | [plugins/co-write](plugins/co-write) |
 
 ![壁纸 · 深色](docs/wallpaper-dark.png)
@@ -32,7 +32,7 @@ https://hongxsen.github.io/dsh_plugins/index.json
 - **技能**：搜索 [skills.sh](https://www.skills.sh) 的公开目录，打开条目查看 `SKILL.md`、全部文件和安全提示，确认后安装到 `~/.dsh/skills/<name>`。DSH 的文件技能提供者会自动发现新技能，无需重启。删除只处理市场自己安装的技能，手工放进来的目录保持只读。
 - **MCP**：搜索[官方 MCP Registry](https://registry.modelcontextprotocol.io)，选择托管地址或 `npx` / `uvx` / `docker` 包，填写必需的密钥，插件会把一条 `@deepseek-ai/dsh-mcp-client` 配置写进当前 profile 的 `cordis.patch.yml` 受管区块。有 HMR 时立即生效，没有 HMR 的部署会提示重启。手工配置的 MCP 行只读展示，不会被改写。
 
-两个市场安装前都会展示第三方内容并要求确认。MCP 的密钥会写进当前 profile 的 `cordis.patch.yml`（权限 `0600`），并在 `~/.dsh/storages/dsh-mcp-market/servers.json` 保留一份；如果不想把密钥落在配置里，可以在安装后把对应值改成 `!!js process.env.YOUR_ENV`。
+两个市场都支持在发现页左侧切换或添加自定义市场源（skills.sh 兼容 / JSON 索引；MCP Registry 兼容 / JSON 索引），市场源保存在 `~/.dsh/storages/dsh-*-market/sources.json`。安装前都会展示第三方内容并要求确认。MCP 的密钥会写进当前 profile 的 `cordis.patch.yml`（权限 `0600`），并在 `~/.dsh/storages/dsh-mcp-market/servers.json` 保留一份；如果不想把密钥落在配置里，可以在安装后把对应值改成 `!!js process.env.YOUR_ENV`。
 
 ## 手动安装某个插件
 
@@ -44,9 +44,9 @@ dsh plugin --profile desktop add \
 
 # 两个市场插件
 dsh plugin --profile desktop add \
-  "git+https://github.com/hongxsen/dsh_plugins.git#skills-market-v0.1.0&path:/plugins/skills-market"
+  "git+https://github.com/hongxsen/dsh_plugins.git#skills-market-v0.2.0&path:/plugins/skills-market"
 dsh plugin --profile desktop add \
-  "git+https://github.com/hongxsen/dsh_plugins.git#mcp-market-v0.1.0&path:/plugins/mcp-market"
+  "git+https://github.com/hongxsen/dsh_plugins.git#mcp-market-v0.2.0&path:/plugins/mcp-market"
 ```
 
 本地开发时直接指向目录：

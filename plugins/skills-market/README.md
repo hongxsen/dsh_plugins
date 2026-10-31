@@ -35,6 +35,37 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 
 要求：DSH `>=0.2.1-0 <0.3.0`、Node 24、Web 界面（插件声明了 `platform: web`）。
 
+## 自定义市场 / Custom markets
+
+「发现」页搜索框左侧有一个市场源下拉框，最后一项「管理市场源…」可以添加、切换和移除市场源。选择会写入宿主端，刷新页面或重启后保留。
+
+支持两类市场源：
+
+- **skills.sh 兼容**：一个提供 `GET /api/search?q=` 和 `/<owner>/<repo>/<skill>` 详情页的服务地址。适合自建镜像或代理。
+- **JSON 索引**：一个静态 JSON 文档，适合团队私有技能目录。示例：
+
+```json
+{
+  "format": 1,
+  "title": "Team Skills",
+  "skills": [
+    {
+      "name": "deploy-helper",
+      "source": "acme/skills",
+      "skillId": "deploy-helper",
+      "description": "Deploy the internal service.",
+      "installs": 42,
+      "tags": ["ops", "deploy"],
+      "homepage": "https://github.com/acme/skills"
+    }
+  ]
+}
+```
+
+`source` 必须是 GitHub 的 `owner/repo`，`skillId` 用于定位技能目录；安装时仍然从 GitHub 下载、解析 `SKILL.md`、做安全扫描并展示预览。也就是说，自定义索引只改变“发现”的来源，不绕过安装校验。
+
+市场源保存在 `<DSH_HOME>/storages/dsh-skills-market/sources.json`（权限 `0600`，内置源不可删除）。索引文档限制 2 MiB / 2000 条，缓存 5 分钟；地址只允许 `http(s)`，不能带用户名密码或 `#fragment`。自定义源的内容同样来自第三方，安装前请查看预览与安全提示。
+
 ## 技能装到哪里
 
 - 技能目录：`<DSH_HOME>/skills/<frontmatter-name>/`，默认即 `~/.dsh/skills/<name>/`；如果 `skills` 本身是符号链接，安装会被拒绝（`skills/install-failed`）。
@@ -55,6 +86,7 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 - **前端校验不替代 Host 校验**：安装接口只接收 staging token，Host 会重新校验暂存文件、frontmatter 与目标路径；不会信任浏览器传来的文件名或目录。
 - **替换与移除**：`replace` 只允许覆盖 `installed.json` 里记录过、且位于技能根目录内的目录；符号链接、目录外路径、未知目录一律拒绝（`skills/not-managed`）。移除只针对本插件安装并记录过的技能，先移到 `.trash` 再删除，然后清理记录。
 - **不记录敏感信息**：本插件不读取、不记录 `GITHUB_TOKEN`、请求头、环境变量或页面内容；`GITHUB_TOKEN`（如果 Host 环境里有）只用于 GitHub API 请求，出现在错误信息里的只会是 HTTP 状态码。
+- **自定义源是显式信任边界**：市场源由用户手动添加，Host 会直接请求该地址（允许 `http(s)`，上限 2 MiB / 10 秒）。不要添加不受信任的内网地址；索引内容仍要经过安装预览与安全扫描。
 - **网络降级**：目录搜索超时/离线/限流时回退到内置热门列表；详情描述抓取失败只返回空描述，不阻塞详情页。
 
 ## HMR 与重启
@@ -71,15 +103,17 @@ dsh plugin --profile desktop remove @hongxsen/dsh-skills-market
 
 | 方法 | 路径 | 请求 | 响应 |
 |---|---|---|---|
-| GET | `/api/search?q=` | — | `{ seed, query, skills, cached, warning? }` |
-| GET | `/api/detail?source=&skill=` | — | `{ description, pageUrl }` |
+| GET | `/api/search?q=&source=` | — | `{ seed, query, skills, cached, warning?, source }` |
+| GET | `/api/detail?market=&repo=&skill=` | — | `{ description, pageUrl, title }`（`source` 仍作为 `repo` 的旧别名） |
+| GET | `/api/sources` | — | `{ version, selected, sources }` |
+| POST | `/api/sources` | `{ action: "add"\|"remove"\|"select", ... }` | `{ selected, sources, source? }` |
 | POST | `/api/preview` | `{ source, skillId }` | `{ token, name, description, source, skillId, repo, branch, path, files, totalBytes, skillMd, warnings, warningTotal, existing, target }` |
 | POST | `/api/install` | `{ token, replace? }` | `{ installed: true, name }` |
 | GET | `/api/installed` | — | `{ skills: [...] }` |
 | POST | `/api/remove` | `{ name }` | `{ removed: true }` |
-| GET | `/api/health` | — | `{ ok: true, root, version }` |
+| GET | `/api/health` | — | `{ ok: true, root, version, sources }` |
 
-错误码：`skills/invalid-query`、`skills/fetch-failed`、`skills/not-found`、`skills/invalid-skill`、`skills/too-large`、`skills/exists`、`skills/not-managed`、`skills/staging-expired`、`skills/install-failed`；请求层另有 `request/forbidden-origin`、`request/unsupported-media-type`、`request/body-too-large`、`request/invalid-json`、`request/not-found`、`request/method-not-allowed`、`internal/error`。
+错误码：`skills/invalid-query`、`skills/fetch-failed`、`skills/not-found`、`skills/invalid-skill`、`skills/too-large`、`skills/exists`、`skills/not-managed`、`skills/staging-expired`、`skills/install-failed`、`sources/invalid`、`sources/limit`、`sources/not-found`、`sources/builtin`、`sources/fetch-failed`、`sources/invalid-index`；请求层另有 `request/forbidden-origin`、`request/unsupported-media-type`、`request/body-too-large`、`request/invalid-json`、`request/not-found`、`request/method-not-allowed`、`internal/error`。
 
 ## 开发
 

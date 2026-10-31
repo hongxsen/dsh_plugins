@@ -73,6 +73,13 @@ export function normalizeRecord(raw) {
     const env = normalizeStringMap(raw.env)
     if (env !== undefined) record.env = env
   }
+  // Sources arrived in 0.2.0; older records simply omit both fields.
+  if (typeof raw.sourceId === 'string' && raw.sourceId.length > 0 && raw.sourceId.length <= 128) {
+    record.sourceId = raw.sourceId
+  }
+  if (typeof raw.sourceTitle === 'string' && raw.sourceTitle.trim().length > 0 && raw.sourceTitle.length <= 80) {
+    record.sourceTitle = raw.sourceTitle.trim()
+  }
   return record
 }
 

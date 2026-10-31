@@ -262,11 +262,11 @@ test('install rejects unknown and malformed tokens', async () => {
   await assert.rejects(service.install({}), (error) => error.code === 'skills/staging-expired')
 })
 
-test('health reports the skills root and version', () => {
+test('health reports the skills root and version', async () => {
   const service = createSkillsMarket({ dshHome: HOME, now: () => NOW })
-  const health = service.health()
+  const health = await service.health()
   assert.equal(health.ok, true)
-  assert.equal(health.version, '0.1.0')
+  assert.equal(health.version, '0.2.0')
   assert.match(health.root, /skills$/u)
 })
 

@@ -16,10 +16,18 @@ import {
   recordFromChoice,
   rowFromRecord,
 } from './config.js'
-import { mcpError } from './errors.js'
+import { mcpError, sourcesError } from './errors.js'
 import { createPatchManager, createSerialQueue, assertPatchPath } from './patch.js'
-import { createRegistryClient } from './registry.js'
+import { createIndexClient, findIndexServer, searchIndexServers } from './index-source.js'
+import { createRegistryClient, normalizeBaseUrl } from './registry.js'
 import { isRegistryName, isRowId, rowIdFor, serverNameFor } from './slug.js'
+import {
+  BUILTIN_SOURCE_ID,
+  BUILTIN_SOURCE_URL,
+  builtinSourceDoc,
+  createSourceStore,
+  publicSource,
+} from './sources.js'
 import { createServerStore } from './store.js'
 
 /** Runtime commands probed for the installed page and package installs. */
@@ -81,6 +89,9 @@ export function createMarketService(options = {}) {
   const providedProfileName = options.profileName
   const commandCheck = options.commandCheck ?? commandAvailable
   const registry = options.registry ?? createRegistryClient({ logger })
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch
+  const indexClient = options.indexClient ?? createIndexClient({ fetchImpl, now, logger })
+  const registryClients = new Map()
   const mutationQueue = createSerialQueue()
 
   let runtimeCache
@@ -88,6 +99,8 @@ export function createMarketService(options = {}) {
   let cachedPatchPath
   let cachedStore
   let cachedHome
+  let cachedSourceStore
+  let cachedSourceHome
 
   const get = name => {
     if (ctx?.get === undefined) return undefined
@@ -156,6 +169,93 @@ export function createMarketService(options = {}) {
     return cachedStore
   }
 
+  const sourceStoreManager = () => {
+    if (options.sourceStore !== undefined) return options.sourceStore
+    const home = dshHome()
+    if (cachedSourceStore === undefined || cachedSourceHome !== home) {
+      cachedSourceStore = createSourceStore({
+        dir: join(home, 'storages', 'dsh-mcp-market'),
+        logger,
+        fetchImpl,
+      })
+      cachedSourceHome = home
+    }
+    return cachedSourceStore
+  }
+
+  /**
+   * Read the source document for catalog requests. An unreadable store falls
+   * back to the builtin source without overwriting the user's file; `/api/sources`
+   * and mutations still report the storage failure loudly.
+   */
+  const sourceDocOrDefault = async () => {
+    try {
+      return await sourceStoreManager().read()
+    } catch (error) {
+      logger?.warn?.(`dsh-mcp-market: market sources unavailable, using the builtin: ${error?.message ?? 'read error'}`)
+      return builtinSourceDoc()
+    }
+  }
+
+  /** Resolve an explicit source id, or the stored selection. */
+  const resolveSource = async sourceId => {
+    const doc = await sourceDocOrDefault()
+    if (sourceId === undefined || sourceId === null || sourceId === '') {
+      return doc.sources.find(source => source.id === doc.selected) ?? doc.sources[0]
+    }
+    if (typeof sourceId !== 'string' || sourceId.length > 128) {
+      throw sourcesError('not-found', 'That market source was not found.', 404)
+    }
+    const source = doc.sources.find(candidate => candidate.id === sourceId)
+    if (source === undefined) {
+      throw sourcesError('not-found', 'That market source was not found.', 404)
+    }
+    return source
+  }
+
+  /** Registry client for one source; custom bases get their own cache. */
+  const registryFor = source => {
+    if (source.kind !== 'mcp-registry') {
+      throw mcpError('invalid-entry', 'The selected market source is not an MCP registry.', 400)
+    }
+    const base = normalizeBaseUrl(source.url)
+    if (options.registry !== undefined && source.id === BUILTIN_SOURCE_ID && base === normalizeBaseUrl(BUILTIN_SOURCE_URL)) {
+      return options.registry
+    }
+    let client = registryClients.get(base)
+    if (client === undefined) {
+      client = createRegistryClient({ baseUrl: base, logger, fetchImpl, now })
+      registryClients.set(base, client)
+    }
+    return client
+  }
+
+  /** Resolve one registry entry from the selected source at request time. */
+  const sourceEntry = async (source, name) => {
+    if (source.kind === 'index') {
+      const { doc } = await indexClient.get(source)
+      const entry = findIndexServer(doc, name)
+      if (entry === null) throw mcpError('not-found', 'The requested MCP server was not found.', 404)
+      return entry
+    }
+    return registryFor(source).getServer(name)
+  }
+
+  /** Drop cached catalog data after any source mutation. */
+  const clearSourceCaches = () => {
+    indexClient.clear()
+    for (const client of registryClients.values()) client.clear?.()
+  }
+
+  const sourceSummary = async () => {
+    try {
+      const doc = await sourceStoreManager().read()
+      return { count: doc.sources.length, selected: doc.selected }
+    } catch {
+      return { count: 1, selected: BUILTIN_SOURCE_ID }
+    }
+  }
+
   const hmrAvailable = () => get('hmr') !== undefined
 
   const runtimes = () => {
@@ -189,6 +289,8 @@ export function createMarketService(options = {}) {
     version: record.version,
     transport: record.transport,
     ...(record.transport === 'streamable-http' ? { url: record.url } : { command: record.command, args: record.args }),
+    ...(record.sourceId === undefined ? {} : { sourceId: record.sourceId }),
+    ...(record.sourceTitle === undefined ? {} : { sourceTitle: record.sourceTitle }),
     enabled: record.enabled,
     installedAt: record.installedAt,
     updatedAt: record.updatedAt,
@@ -202,31 +304,84 @@ export function createMarketService(options = {}) {
     return patch.writeRows(rows)
   }
 
-  const health = () => ({
+  const health = async () => ({
     ok: true,
     profile: profileName(),
     patchPath: displayPatchPath(patchPath(), dshHome()),
     hmr: hmrAvailable(),
+    sources: await sourceSummary(),
   })
 
-  const search = async (query, cursor) => {
-    const result = await registry.search(query, cursor === undefined ? {} : { cursor })
-    return { query: result.query, servers: result.servers, cached: result.cached }
+  /** List every source plus the current selection; creates the builtin file. */
+  const sources = () => sourceStoreManager().ensure()
+
+  /** Add, remove, or select a source. The store serializes its own writes. */
+  const sourceAction = async body => {
+    const action = body?.action
+    const store = sourceStoreManager()
+    if (action === 'add') {
+      const { doc, source } = await store.add({
+        kind: body?.kind,
+        title: body?.title,
+        url: body?.url,
+      })
+      clearSourceCaches()
+      return { selected: doc.selected, sources: doc.sources, source }
+    }
+    if (action === 'remove') {
+      const doc = await store.remove(body?.id)
+      clearSourceCaches()
+      return { selected: doc.selected, sources: doc.sources }
+    }
+    if (action === 'select') {
+      const doc = await store.select(body?.id)
+      clearSourceCaches()
+      return { selected: doc.selected, sources: doc.sources }
+    }
+    throw sourcesError('invalid', 'The market source action is not supported.', 400, {
+      actions: ['add', 'remove', 'select'],
+    })
   }
 
-  const detail = name => {
+  const search = async (query, cursor, sourceId) => {
+    const source = await resolveSource(sourceId)
+    const identity = publicSource(source)
+    if (source.kind === 'index') {
+      const { doc, cached } = await indexClient.get(source)
+      const q = typeof query === 'string' ? query.trim() : ''
+      return { query: q, servers: searchIndexServers(doc, q, source), cached, source: identity }
+    }
+    const result = await registryFor(source).search(query, cursor === undefined ? {} : { cursor })
+    return {
+      query: result.query,
+      servers: result.servers.map(server => ({ ...server, market: source.id })),
+      cached: result.cached,
+      source: identity,
+    }
+  }
+
+  const detail = async (name, sourceId) => {
     if (typeof name !== 'string' || !isRegistryName(name)) {
       throw mcpError('invalid-entry', 'The registry name is malformed.', 400)
     }
-    return registry.getServer(name)
+    const source = await resolveSource(sourceId)
+    if (source.kind === 'index') {
+      const { doc } = await indexClient.get(source)
+      const entry = findIndexServer(doc, name)
+      if (entry === null) throw mcpError('not-found', 'The requested MCP server was not found.', 404)
+      return { ...entry, market: source.id }
+    }
+    const entry = await registryFor(source).getServer(name)
+    return { ...entry, market: source.id }
   }
 
-  const preview = async registryName => {
+  const preview = async (registryName, sourceId) => {
     if (typeof registryName !== 'string' || !isRegistryName(registryName)) {
       throw mcpError('invalid-entry', 'The registry name is malformed.', 400)
     }
+    const source = await resolveSource(sourceId)
     requirePatchPath()
-    const entry = await registry.getServer(registryName)
+    const entry = await sourceEntry(source, registryName)
     const doc = await storeManager().read()
     const serverName = serverNameFor(registryName)
     const existingRecord = Object.values(doc.servers).find(record => record.serverName === serverName)
@@ -242,9 +397,12 @@ export function createMarketService(options = {}) {
     if (typeof registryName !== 'string' || !isRegistryName(registryName)) {
       throw mcpError('invalid-entry', 'The registry name is malformed.', 400)
     }
+    // Resolve the entry from the selected source; client-supplied config is
+    // never used. This second fetch also protects previews from tampering.
+    const source = await resolveSource(body?.source)
     const values = normalizeValues(body?.values)
     requirePatchPath()
-    const entry = await registry.getServer(registryName)
+    const entry = await sourceEntry(source, registryName)
     const built = buildChoice(entry, body?.choice, values)
     if (built.transport === 'stdio' && runtimes()[built.config.command] !== true) {
       throw mcpError('runtime-missing', `The runtime command "${built.config.command}" is not available.`, 400, {
@@ -269,6 +427,8 @@ export function createMarketService(options = {}) {
     })
     record.rowId = rowId
     record.enabled = true
+    record.sourceId = source.id
+    record.sourceTitle = source.title
     const next = { version: 1, servers: { ...before.servers } }
     for (const [id, candidate] of Object.entries(next.servers)) {
       if (candidate.serverName === serverName) delete next.servers[id]
@@ -364,6 +524,8 @@ export function createMarketService(options = {}) {
 
   return {
     health,
+    sources,
+    sourceAction,
     search,
     detail,
     preview,

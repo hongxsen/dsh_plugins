@@ -1,6 +1,6 @@
 {
   "name": "@hongxsen/dsh-mcp-market",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Browse the official MCP registry from the DSH sidebar, install a server as a managed @deepseek-ai/dsh-mcp-client row, and enable, disable, or remove it.",
   "keywords": [

@@ -12,6 +12,20 @@ import { isRegistryName, lastSegment } from './slug.js'
 /** Public registry origin. */
 export const REGISTRY_BASE_URL = 'https://registry.modelcontextprotocol.io'
 
+/**
+ * Normalize a registry base URL by trimming whitespace and trailing slashes.
+ *
+ * A custom `mcp-registry` source may point at a compatible mirror; the same
+ * `/v0/servers` paths are then appended to this base.
+ *
+ * @param value - untrusted base URL.
+ * @returns the normalized base, or the official origin when empty.
+ */
+export function normalizeBaseUrl(value) {
+  if (typeof value !== 'string' || value.trim().length === 0) return REGISTRY_BASE_URL
+  return value.trim().replace(/\/+$/u, '')
+}
+
 /** Search results live for five minutes, matching the product contract. */
 export const CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -220,7 +234,7 @@ export function normalizeServerList(payload) {
 
 /** Build the registry search URL. */
 function searchUrl(baseUrl, query, { cursor, limit, version }) {
-  const url = new URL('/v0/servers', baseUrl)
+  const url = new URL(`${baseUrl}/v0/servers`)
   if (query.length > 0) url.searchParams.set('search', query)
   url.searchParams.set('limit', String(limit))
   if (version) url.searchParams.set('version', version)
@@ -235,7 +249,7 @@ function searchUrl(baseUrl, query, { cursor, limit, version }) {
  * @returns search/detail methods sharing one five-minute cache.
  */
 export function createRegistryClient(options = {}) {
-  const baseUrl = options.baseUrl ?? REGISTRY_BASE_URL
+  const baseUrl = normalizeBaseUrl(options.baseUrl ?? REGISTRY_BASE_URL)
   const ttlMs = options.ttlMs ?? CACHE_TTL_MS
   const timeoutMs = options.timeoutMs ?? 15000
   const fetchImpl = options.fetchImpl ?? globalThis.fetch
@@ -274,7 +288,7 @@ export function createRegistryClient(options = {}) {
         method: 'GET',
         headers: {
           accept: 'application/json',
-          'user-agent': 'dsh-mcp-market/0.1.0 (+https://github.com/hongxsen/dsh_plugins)',
+          'user-agent': 'dsh-mcp-market/0.2.0 (+https://github.com/hongxsen/dsh_plugins)',
         },
         signal: AbortSignal.timeout(timeoutMs),
       })

@@ -36,6 +36,11 @@ export function mcpError(code, message, status = 400, details = undefined) {
   return new ApiError(`mcp/${code}`, message, status, details)
 }
 
+/** Shorthand for one of the documented market-source error codes. */
+export function sourcesError(code, message, status = 400, details = undefined) {
+  return new ApiError(`sources/${code}`, message, status, details)
+}
+
 /** True when a value is a plain JSON object (not an array, not null). */
 export function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)

@@ -51,6 +51,38 @@ dsh plugin --profile desktop remove @hongxsen/dsh-mcp-market
 
 本包**没有任何安装脚本**。
 
+## 自定义市场 / Custom markets
+
+「发现」页搜索框左侧有一个市场源下拉框，最后一项「管理市场源…」可以添加、切换和移除市场源。选择会写入宿主端，刷新页面或重启后保留。
+
+支持两类市场源：
+
+- **MCP Registry 兼容**：一个实现 `GET /v0/servers?search=&limit=&version=latest` 的服务地址。适合自建镜像。
+- **JSON 索引**：一个静态 JSON 文档，列出服务器条目。示例：
+
+```json
+{
+  "format": 1,
+  "title": "Team MCP",
+  "servers": [
+    {
+      "name": "com.acme/weather",
+      "title": "Acme Weather",
+      "description": "Weather tools for internal services.",
+      "version": "1.0.0",
+      "remotes": [
+        { "type": "streamable-http", "url": "https://mcp.acme.test/mcp" }
+      ],
+      "packages": []
+    }
+  ]
+}
+```
+
+条目也可以直接使用官方 Registry 的 `{ "server": { ... } }` 包装。安装/预览时会从当前市场源重新读取条目，不信任浏览器提交的 URL 或命令；`@deepseek-ai/dsh-mcp-client` 的配置仍按原有规则校验后写入受管区块，并记录来源名称。
+
+市场源保存在 `<DSH_HOME>/storages/dsh-mcp-market/sources.json`（权限 `0600`，内置源不可删除）。索引文档限制 2 MiB / 2000 条，缓存 5 分钟；地址只允许 `http(s)`，不能带用户名密码或 `#fragment`。SSE-only 条目仍会显示为“不支持”。
+
 ## 写入位置
 
 安装或启停时只写三处：
@@ -89,6 +121,7 @@ dsh plugin --profile desktop remove @hongxsen/dsh-mcp-market
 - **不信任浏览器输入**：安装时 Host 端会按 registry name 重新拉取条目，客户端提交的 URL、命令、包名一律不采用；只允许 `http:`/`https:` URL 和固定的 `npx`/`uvx`/`docker` 命令，不经过 shell。
 - **输入校验**：每个请求头/环境变量值必须是字符串且 ≤ 8 KiB；请求头不能含换行；未知/危险键、非法环境变量名会被拒绝。
 - **路由边界**：API 只挂在 `/dsh-mcp-market` 前缀下，同源校验（Origin 与 Host 不一致返回 403）、POST 只接受 `application/json`、请求体上限 1 MiB、响应 `Cache-Control: no-store`。
+- **自定义源是显式信任边界**：市场源由用户手动添加，Host 会直接请求该地址（允许 `http(s)`，上限 2 MiB / 10 秒）。不要添加不受信任的内网地址；安装时仍会从该源重新读取条目并做配置校验。
 - **移除行为**：只删除 `servers.json` 里登记的行并重写托管块；托管块之外的行、其他插件、服务器自己的数据都不会被改动。
 
 ## HMR 与重启

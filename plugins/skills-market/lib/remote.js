@@ -8,6 +8,8 @@
 import { MarketError } from './errors.js'
 import {
   FETCH_TIMEOUT_MS,
+  INDEX_FETCH_TIMEOUT_MS,
+  INDEX_MAX_BYTES,
   MAX_DETAIL_DESCRIPTION,
   MAX_FILE_BYTES,
   SEARCH_RESULT_LIMIT,
@@ -16,7 +18,7 @@ import {
 import { validateSkillId, validateSource } from './validate.js'
 
 /** User-Agent GitHub and skills.sh both accept. */
-export const USER_AGENT = 'dsh-skills-market/0.1.0'
+export const USER_AGENT = 'dsh-skills-market/0.2.0'
 
 /** Default cap for JSON/HTML responses. */
 const DEFAULT_MAX_BYTES = 8 * 1024 * 1024
@@ -222,15 +224,40 @@ export function normalizeSearchPayload(payload) {
 }
 
 /**
- * Query the public skills.sh search endpoint.
+ * Normalize a skills.sh-compatible base URL: absolute http(s) without a
+ * trailing slash. Stored source URLs are already validated, but accepting the
+ * value here keeps the helper usable on its own.
+ * @param base - base URL such as `https://skills.example.com`.
+ * @returns the base without trailing slashes.
+ */
+export function normalizeSourceBase(base) {
+  const text = typeof base === 'string' && base.trim() !== '' ? base.trim() : SKILLS_SITE
+  return text.replace(/\/+$/u, '')
+}
+
+/**
+ * Build one skill page URL under a skills.sh-compatible base.
+ * @param base - base URL.
+ * @param source - `owner/repo`.
+ * @param skillId - skill id.
+ * @returns the page URL.
+ */
+export function skillPageUrlOf(base, source, skillId) {
+  const [owner = '', repo = ''] = String(source ?? '').split('/')
+  return `${normalizeSourceBase(base)}/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(String(skillId ?? ''))}`
+}
+
+/**
+ * Query the public skills.sh-compatible search endpoint.
  * @param fetchImpl - fetch implementation.
  * @param query - trimmed query of at least two characters.
+ * @param base - catalog base; defaults to the public skills.sh site.
  * @returns normalized skills.
  * @throws MarketError `skills/invalid-query` on an upstream 400, otherwise
  *   `skills/fetch-failed`.
  */
-export async function searchSkills(fetchImpl, query) {
-  const url = `${SKILLS_SITE}/api/search?q=${encodeURIComponent(query)}`
+export async function searchSkills(fetchImpl, query, base = SKILLS_SITE) {
+  const url = `${normalizeSourceBase(base)}/api/search?q=${encodeURIComponent(query)}`
   const result = await requestBuffer(fetchImpl, url, {
     headers: { accept: 'application/json' },
     maxBytes: 4 * 1024 * 1024,
@@ -246,6 +273,44 @@ export async function searchSkills(fetchImpl, query) {
     throw new MarketError('skills/fetch-failed', 'The catalog returned invalid JSON')
   }
   return normalizeSearchPayload(payload)
+}
+
+/**
+ * Fetch a static JSON index document with the source-store caps.
+ *
+ * Content problems map to `sources/invalid-index`; transport and status
+ * problems map to `sources/fetch-failed`. The body is returned as text so the
+ * pure parser owns schema validation.
+ * @param fetchImpl - fetch implementation.
+ * @param url - validated absolute index URL.
+ * @returns the document text.
+ * @throws MarketError `sources/fetch-failed` or `sources/invalid-index`.
+ */
+export async function fetchSourceIndex(fetchImpl, url) {
+  let result
+  try {
+    result = await requestBuffer(fetchImpl, url, {
+      headers: { accept: 'application/json' },
+      timeoutMs: INDEX_FETCH_TIMEOUT_MS,
+      maxBytes: INDEX_MAX_BYTES,
+    })
+  } catch (error) {
+    if (error instanceof MarketError && error.code === 'skills/too-large') {
+      throw new MarketError('sources/invalid-index', 'The index document is too large', {
+        maxBytes: INDEX_MAX_BYTES,
+      })
+    }
+    const reason = error instanceof MarketError && typeof error.details?.reason === 'string'
+      ? error.details.reason
+      : 'network'
+    throw new MarketError('sources/fetch-failed', 'The index document could not be fetched', { reason })
+  }
+  if (!result.ok) {
+    throw new MarketError('sources/fetch-failed', `The index document returned HTTP ${result.status}`, {
+      status: result.status,
+    })
+  }
+  return result.buffer.toString('utf8')
 }
 
 /**
@@ -291,11 +356,12 @@ export function extractMetaDescription(html, limit = MAX_DETAIL_DESCRIPTION) {
  * @param fetchImpl - fetch implementation.
  * @param source - `owner/repo`.
  * @param skillId - skill id.
+ * @param base - catalog base; defaults to the public skills.sh site.
  * @returns `{ description, pageUrl }`.
  */
-export async function fetchSkillDescription(fetchImpl, source, skillId) {
+export async function fetchSkillDescription(fetchImpl, source, skillId, base = SKILLS_SITE) {
   const [owner, repo] = source.split('/')
-  const pageUrl = `${SKILLS_SITE}/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(skillId)}`
+  const pageUrl = `${normalizeSourceBase(base)}/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(skillId)}`
   try {
     const result = await requestBuffer(fetchImpl, pageUrl, {
       headers: { accept: 'text/html' },

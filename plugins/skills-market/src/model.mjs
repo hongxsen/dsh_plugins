@@ -136,7 +136,7 @@ export function normalizeSkills(value) {
     const key = `${source}/${skillId}`
     if (seen.has(key)) continue
     seen.add(key)
-    out.push({
+    const entry = {
       id: typeof raw.id === 'string' && raw.id !== '' ? raw.id : key,
       source,
       skillId,
@@ -144,9 +144,73 @@ export function normalizeSkills(value) {
       installs: typeof raw.installs === 'number' && Number.isFinite(raw.installs)
         ? Math.max(0, Math.floor(raw.installs))
         : 0,
-    })
+    }
+    // These fields only appear for static index sources; leaving them out for
+    // skills.sh keeps the lazy description path intact.
+    if (typeof raw.description === 'string' && raw.description !== '') entry.description = raw.description
+    if (typeof raw.pageUrl === 'string' && raw.pageUrl !== '') entry.pageUrl = raw.pageUrl
+    if (typeof raw.market === 'string' && raw.market !== '') entry.market = raw.market
+    out.push(entry)
   }
   return out
+}
+
+/**
+ * Normalize one `source` metadata object attached to search/detail responses.
+ * @param value - untrusted object.
+ * @returns `{ id, kind, title, url }`, or `null`.
+ */
+export function normalizeSourceMeta(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null
+  const id = typeof value.id === 'string' ? value.id.trim() : ''
+  if (id === '') return null
+  return {
+    id,
+    kind: value.kind === 'index' ? 'index' : 'skills-sh',
+    title: typeof value.title === 'string' && value.title !== '' ? value.title : id,
+    url: typeof value.url === 'string' ? value.url : '',
+  }
+}
+
+/** Source kinds the browser knows how to render. */
+export const SOURCE_KINDS = Object.freeze(['skills-sh', 'index'])
+
+/**
+ * Normalize a source-store payload against untrusted data.
+ * The builtin source is synthesized when the Host payload is unusable so the
+ * switcher always has a valid option.
+ * @param value - response from `GET /api/sources` or a mutation.
+ * @returns `{ version, selected, sources }`.
+ */
+export function normalizeSources(value) {
+  const document = value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  const rawSources = Array.isArray(document.sources) ? document.sources : []
+  const sources = []
+  const seen = new Set()
+  for (const raw of rawSources) {
+    if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) continue
+    const id = typeof raw.id === 'string' ? raw.id.trim() : ''
+    const title = typeof raw.title === 'string' ? raw.title.trim() : ''
+    const url = typeof raw.url === 'string' ? raw.url.trim() : ''
+    if (id === '' || title === '' || url === '' || seen.has(id)) continue
+    if (!SOURCE_KINDS.includes(raw.kind)) continue
+    seen.add(id)
+    sources.push({ id, kind: raw.kind, title, url, builtin: raw.builtin === true })
+  }
+  if (sources.length === 0) {
+    sources.push({
+      id: 'skills-sh',
+      kind: 'skills-sh',
+      title: 'skills.sh',
+      url: 'https://www.skills.sh',
+      builtin: true,
+    })
+    seen.add('skills-sh')
+  }
+  const selected = typeof document.selected === 'string' && seen.has(document.selected)
+    ? document.selected
+    : sources[0].id
+  return { version: 1, selected, sources }
 }
 
 /**
@@ -209,6 +273,46 @@ export function safeHttpsUrl(value) {
   } catch {
     return null
   }
+}
+
+/**
+ * Return an `http:`/`https:` URL for a documentation link.
+ * @param value - candidate URL.
+ * @returns the href, or `null`.
+ */
+export function safePageUrl(value) {
+  if (typeof value !== 'string' || value === '') return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Preferred page URL for a catalog entry.
+ *
+ * Index entries carry their own `pageUrl`; skills.sh entries fall back to the
+ * active source's base so custom `skills-sh`-compatible markets keep their own
+ * links.
+ * @param entry - catalog entry.
+ * @param source - active source metadata (optional).
+ * @returns the page URL, or `null`.
+ */
+export function pageUrlOf(entry, source) {
+  if (entry !== null && typeof entry === 'object') {
+    const direct = safePageUrl(entry.pageUrl)
+    if (direct !== null) return direct
+  }
+  if (entry === null || typeof entry !== 'object') return null
+  const base = source !== null && typeof source === 'object'
+    && source.kind === 'skills-sh'
+    && typeof source.url === 'string' && source.url !== ''
+    ? source.url.replace(/\/+$/u, '')
+    : 'https://www.skills.sh'
+  const [owner = '', repo = ''] = String(entry.source ?? '').split('/')
+  return `${base}/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(String(entry.skillId ?? ''))}`
 }
 
 /**
@@ -304,14 +408,36 @@ export function createApiClient(base = API_BASE, options = {}) {
     }
   }
   return {
-    search: (query) => request('/api/search', { query: { q: query }, timeoutMs: TIMEOUTS.search }),
-    detail: (source, skillId) => request('/api/detail', {
-      query: { source, skill: skillId },
+    search: (query, sourceId) => request('/api/search', {
+      query: sourceId === undefined ? { q: query } : { q: query, source: sourceId },
+      timeoutMs: TIMEOUTS.search,
+    }),
+    detail: (source, skillId, market) => request('/api/detail', {
+      // Legacy callers that omit `market` still use the `source` alias for repo.
+      query: market === undefined
+        ? { source, skill: skillId }
+        : { repo: source, skill: skillId, market },
       timeoutMs: TIMEOUTS.detail,
     }),
     preview: (input) => request('/api/preview', { method: 'POST', body: input, timeoutMs: TIMEOUTS.preview }),
     install: (input) => request('/api/install', { method: 'POST', body: input, timeoutMs: TIMEOUTS.mutation }),
     installed: () => request('/api/installed', { timeoutMs: TIMEOUTS.mutation }),
     remove: (name) => request('/api/remove', { method: 'POST', body: { name }, timeoutMs: TIMEOUTS.mutation }),
+    sources: () => request('/api/sources', { timeoutMs: TIMEOUTS.mutation }),
+    addSource: (input) => request('/api/sources', {
+      method: 'POST',
+      body: { action: 'add', kind: input.kind, title: input.title, url: input.url },
+      timeoutMs: TIMEOUTS.mutation,
+    }),
+    removeSource: (id) => request('/api/sources', {
+      method: 'POST',
+      body: { action: 'remove', id },
+      timeoutMs: TIMEOUTS.mutation,
+    }),
+    selectSource: (id) => request('/api/sources', {
+      method: 'POST',
+      body: { action: 'select', id },
+      timeoutMs: TIMEOUTS.mutation,
+    }),
   }
 }

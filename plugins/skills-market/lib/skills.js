@@ -21,6 +21,13 @@ import {
 } from './constants.js'
 import { MarketError } from './errors.js'
 import { readSkillManifest } from './frontmatter.js'
+import {
+  detailOf,
+  findIndexEntry,
+  parseIndexDocument,
+  searchIndexSkills,
+  searchResultOf,
+} from './index-source.js'
 import { scanInstalledSkills, skillExists } from './installed.js'
 import { runPool } from './pool.js'
 import { displayPath, resolveDshHome, skillsRootOf } from './paths.js'
@@ -30,8 +37,11 @@ import {
   fetchRepoDefaultBranch,
   fetchRepoTree,
   fetchSkillDescription,
+  fetchSourceIndex,
   searchSkills,
+  skillPageUrlOf,
 } from './remote.js'
+import { createSourceStore } from './sources.js'
 import { scanFiles } from './scan.js'
 import { installPreview, pruneStaging, removeInstalled, writePreview } from './staging.js'
 import { candidateSkillManifests, collectSkillFiles, selectSkillFromTree } from './tree.js'
@@ -78,6 +88,8 @@ export function createSkillsMarket(options = {}) {
 
   const searchCache = new Map()
   const detailCache = new Map()
+  const indexCache = new Map()
+  const sourceStore = createSourceStore({ resolveHome, fetchImpl })
 
   /** Drop the oldest cache entries once the budget is exceeded. */
   const trimCache = (cache) => {
@@ -87,51 +99,168 @@ export function createSkillsMarket(options = {}) {
     }
   }
 
+  /** Drop every cached payload after a source mutation or selection change. */
+  const clearCaches = () => {
+    searchCache.clear()
+    detailCache.clear()
+    indexCache.clear()
+  }
+
   /**
-   * Search the catalog, falling back to the curated seed when the network or
-   * the upstream API is unavailable.
-   * @param rawQuery - query string from the route.
-   * @returns `{ seed, query, skills, cached, warning? }`.
+   * Public metadata attached to search and detail responses.
+   * @param source - normalized source.
+   * @returns `{ id, kind, title, url }`.
    */
-  async function search(rawQuery) {
-    const { query, tooShort } = normalizeQuery(rawQuery)
-    if (tooShort) {
-      return { seed: true, query, skills: SEED_SKILLS.map(cloneSkill), cached: false, warning: null }
+  const sourceMetadata = (source) => ({
+    id: source.id,
+    kind: source.kind,
+    title: source.title,
+    url: source.url,
+  })
+
+  /**
+   * Resolve the requested source, defaulting to the selected one.
+   * An invalid store falls back to the builtin source for reads.
+   * @param sourceId - optional source id.
+   * @returns the source record.
+   * @throws MarketError `sources/not-found` for an unknown id.
+   */
+  async function resolveMarket(sourceId) {
+    const requested = sourceId === undefined || sourceId === null ? '' : String(sourceId)
+    const { store } = await sourceStore.snapshot()
+    if (requested === '') {
+      return store.sources.find((source) => source.id === store.selected) ?? store.sources[0]
     }
-    const key = query.toLowerCase()
+    const source = store.sources.find((candidate) => candidate.id === requested)
+    if (source === undefined) {
+      throw new MarketError('sources/not-found', 'The market source does not exist', {
+        source: requested.slice(0, 80),
+      })
+    }
+    return source
+  }
+
+  /**
+   * Return the curated seed list shaped for one source.
+   * @param source - normalized source.
+   * @returns seed entries with `pageUrl` and `market`.
+   */
+  function seedSkillsFor(source) {
+    return SEED_SKILLS.map((item) => ({
+      ...item,
+      pageUrl: skillPageUrlOf(source.url, item.source, item.skillId),
+      market: source.id,
+    }))
+  }
+
+  /**
+   * Load (and cache for five minutes) one source's static index.
+   * @param source - index source.
+   * @returns `{ document, cached }`.
+   */
+  async function loadIndex(source) {
+    const key = `${source.id}\0${source.url}`
+    const cached = indexCache.get(key)
+    if (cached !== undefined && now() - cached.at < CACHE_TTL_MS) {
+      return { document: cached.document, cached: true }
+    }
+    const text = await fetchSourceIndex(fetchImpl, source.url)
+    const document = parseIndexDocument(text)
+    indexCache.set(key, { at: now(), document })
+    trimCache(indexCache)
+    return { document, cached: false }
+  }
+
+  /**
+   * Search one market source.
+   *
+   * `skills-sh` sources behave like the original catalog (curated seed for
+   * short queries and an offline fallback). Static `index` sources search the
+   * cached document; an empty query lists every entry. Only the builtin source
+   * silently degrades to the curated seed — a user-chosen source surfaces its
+   * error so the panel can offer retry and source management.
+   * @param rawQuery - query string from the route.
+   * @param sourceId - optional source id; defaults to the selected source.
+   * @returns `{ seed, query, skills, cached, warning?, source }`.
+   */
+  async function search(rawQuery, sourceId) {
+    const { query, tooShort } = normalizeQuery(rawQuery)
+    const source = await resolveMarket(sourceId)
+    const market = sourceMetadata(source)
+    if (source.kind === 'index') {
+      const { document, cached } = await loadIndex(source)
+      const skills = searchIndexSkills(document.skills, query)
+        .map((entry) => searchResultOf(entry, source.id))
+      return { seed: false, query, skills, cached, warning: null, source: market }
+    }
+    if (tooShort) {
+      return { seed: true, query, skills: seedSkillsFor(source), cached: false, warning: null, source: market }
+    }
+    const key = `${source.id}\0${query.toLowerCase()}`
     const cached = searchCache.get(key)
     if (cached !== undefined && now() - cached.at < CACHE_TTL_MS) {
-      return { seed: false, query, skills: cached.skills.map(cloneSkill), cached: true, warning: null }
+      return {
+        seed: false,
+        query,
+        skills: cached.skills.map(cloneSkill),
+        cached: true,
+        warning: null,
+        source: market,
+      }
     }
     try {
-      const skills = await searchSkills(fetchImpl, query)
-      searchCache.set(key, { at: now(), skills })
+      const skills = await searchSkills(fetchImpl, query, source.url)
+      const enriched = skills.map((skill) => ({
+        ...skill,
+        pageUrl: skillPageUrlOf(source.url, skill.source, skill.skillId),
+        market: source.id,
+      }))
+      searchCache.set(key, { at: now(), skills: enriched })
       trimCache(searchCache)
-      return { seed: false, query, skills: skills.map(cloneSkill), cached: false, warning: null }
+      return {
+        seed: false,
+        query,
+        skills: enriched.map(cloneSkill),
+        cached: false,
+        warning: null,
+        source: market,
+      }
     } catch (error) {
+      if (source.builtin !== true) throw error
       const warning = error instanceof MarketError && error.code === 'skills/invalid-query' ? 'query' : 'offline'
-      return { seed: true, query, skills: SEED_SKILLS.map(cloneSkill), cached: false, warning }
+      return { seed: true, query, skills: seedSkillsFor(source), cached: false, warning, source: market }
     }
   }
 
   /**
-   * Read the catalog description for one skill.
+   * Read the description and page URL for one skill in one market source.
    * @param source - `owner/repo`.
    * @param skillId - skill id.
-   * @returns `{ description, pageUrl }`.
+   * @param marketId - optional source id; defaults to the selected source.
+   * @returns `{ description, pageUrl, title }`.
    */
-  async function detail(source, skillId) {
+  async function detail(source, skillId, marketId) {
     validateSource(source)
     validateSkillId(skillId)
-    const key = `${source}/${skillId}`
+    const market = await resolveMarket(marketId)
+    if (market.kind === 'index') {
+      const { document } = await loadIndex(market)
+      const entry = findIndexEntry(document.skills, source, skillId)
+      if (entry === undefined) {
+        throw new MarketError('skills/not-found', 'No index entry matches this skill', { source, skillId })
+      }
+      return detailOf(entry)
+    }
+    const key = `${market.id}\0${source}\0${skillId}`
     const cached = detailCache.get(key)
     if (cached !== undefined && now() - cached.at < CACHE_TTL_MS) {
-      return { description: cached.description, pageUrl: cached.pageUrl }
+      return { description: cached.description, pageUrl: cached.pageUrl, title: cached.title }
     }
-    const result = await fetchSkillDescription(fetchImpl, source, skillId)
-    detailCache.set(key, { at: now(), description: result.description, pageUrl: result.pageUrl })
+    const result = await fetchSkillDescription(fetchImpl, source, skillId, market.url)
+    const value = { description: result.description, pageUrl: result.pageUrl, title: skillId }
+    detailCache.set(key, { at: now(), ...value })
     trimCache(detailCache)
-    return { description: result.description, pageUrl: result.pageUrl }
+    return value
   }
 
   /**
@@ -295,14 +424,78 @@ export function createSkillsMarket(options = {}) {
     return removeInstalled({ dshHome: resolveHome(), name, now: now() })
   }
 
-  /** Return the health payload with the skills root rendered sympathetically. */
-  function health() {
+  /**
+   * Return the health payload with the skills root and source summary.
+   * @returns `{ ok, root, version, sources: { count, selected } }`.
+   */
+  async function health() {
+    const { store } = await sourceStore.snapshot()
     return {
       ok: true,
       root: displayPath(skillsRootOf(resolveHome())),
       version: VERSION,
+      sources: { count: store.sources.length, selected: store.selected },
     }
   }
 
-  return { search, detail, preview, install, installed, remove, health }
+  /**
+   * List the configured market sources.
+   * @returns `{ version, selected, sources }`.
+   */
+  async function sources() {
+    return sourceStore.list()
+  }
+
+  /**
+   * Add a source. Index sources are fetched and validated before persisting.
+   * @param input - `{ kind, title, url }`.
+   * @returns `{ selected, sources, source }`.
+   */
+  async function addSource(input) {
+    const result = await sourceStore.add(input)
+    clearCaches()
+    if (result.indexDocument !== undefined) {
+      indexCache.set(`${result.source.id}\0${result.source.url}`, {
+        at: now(),
+        document: result.indexDocument,
+      })
+    }
+    return { selected: result.selected, sources: result.sources, source: result.source }
+  }
+
+  /**
+   * Remove a custom source. Removing the selected one selects the builtin.
+   * @param id - source id.
+   * @returns `{ selected, sources }`.
+   */
+  async function removeSource(id) {
+    const result = await sourceStore.remove(id)
+    clearCaches()
+    return result
+  }
+
+  /**
+   * Select a source.
+   * @param id - source id.
+   * @returns `{ selected, sources }`.
+   */
+  async function selectSource(id) {
+    const result = await sourceStore.select(id)
+    clearCaches()
+    return result
+  }
+
+  return {
+    search,
+    detail,
+    preview,
+    install,
+    installed,
+    remove,
+    health,
+    sources,
+    addSource,
+    removeSource,
+    selectSource,
+  }
 }

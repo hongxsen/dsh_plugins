@@ -10,7 +10,7 @@
 export const PACKAGE_NAME = '@hongxsen/dsh-skills-market'
 
 /** Plugin version reported by `/api/health`. */
-export const VERSION = '0.1.0'
+export const VERSION = '0.2.0'
 
 /** Prefix route owned by this plugin. */
 export const ROUTE_PREFIX = '/dsh-skills-market'
@@ -23,6 +23,39 @@ export const SKILLS_SITE = 'https://www.skills.sh'
 
 /** Search responses stay warm for five minutes, keyed by query. */
 export const CACHE_TTL_MS = 5 * 60 * 1000
+
+/** The builtin market source; it is always present and always first. */
+export const BUILTIN_SOURCE = Object.freeze({
+  id: 'skills-sh',
+  kind: 'skills-sh',
+  title: 'skills.sh',
+  url: 'https://www.skills.sh',
+  builtin: true,
+})
+
+/** Source kinds supported by the skills market. */
+export const SOURCE_KINDS = Object.freeze(['skills-sh', 'index'])
+
+/** Store schema version for `sources.json`. */
+export const SOURCE_STORE_VERSION = 1
+
+/** At most this many sources (builtin included). */
+export const MAX_SOURCES = 20
+
+/** Source titles are trimmed to this many characters. */
+export const MAX_SOURCE_TITLE_LENGTH = 80
+
+/** Source URLs are capped at this many characters. */
+export const MAX_SOURCE_URL_LENGTH = 2048
+
+/** Adding an index source fetches it once with this timeout. */
+export const INDEX_FETCH_TIMEOUT_MS = 10 * 1000
+
+/** A static index document is larger than this rejected. */
+export const INDEX_MAX_BYTES = 2 * 1024 * 1024
+
+/** A static index document lists at most this many skills. */
+export const MAX_INDEX_SKILLS = 2000
 
 /** A query needs at least this many characters before the remote catalog is used. */
 export const MIN_QUERY_LENGTH = 2

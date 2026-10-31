@@ -13,15 +13,44 @@ const ROUTES = Object.freeze([
   {
     path: '/api/search',
     method: 'GET',
-    handle: (service, request) => service.search(request.url.searchParams.get('q') ?? ''),
+    handle: (service, request) => {
+      const query = request.url.searchParams.get('q') ?? ''
+      const source = request.url.searchParams.get('source')
+      return source === null ? service.search(query) : service.search(query, source)
+    },
   },
   {
     path: '/api/detail',
     method: 'GET',
-    handle: (service, request) => service.detail(
-      request.url.searchParams.get('source') ?? '',
-      request.url.searchParams.get('skill') ?? '',
-    ),
+    handle: (service, request) => {
+      // `repo` is the documented parameter; `source` stays as a legacy alias.
+      const repo = request.url.searchParams.get('repo')
+        ?? request.url.searchParams.get('source')
+        ?? ''
+      const skill = request.url.searchParams.get('skill') ?? ''
+      const market = request.url.searchParams.get('market')
+      return market === null ? service.detail(repo, skill) : service.detail(repo, skill, market)
+    },
+  },
+  {
+    path: '/api/sources',
+    method: 'GET',
+    handle: (service) => service.sources(),
+  },
+  {
+    path: '/api/sources',
+    method: 'POST',
+    handle: async (service, request) => {
+      const body = await readJsonBody(request.req)
+      if (body.action === 'add') {
+        return service.addSource({ kind: body.kind, title: body.title, url: body.url })
+      }
+      if (body.action === 'remove') return service.removeSource(body.id)
+      if (body.action === 'select') return service.selectSource(body.id)
+      throw new MarketError('sources/invalid', 'Unknown source action', {
+        action: typeof body.action === 'string' ? body.action.slice(0, 40) : null,
+      })
+    },
   },
   {
     path: '/api/preview',

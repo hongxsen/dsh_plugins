@@ -810,6 +810,112 @@ body[data-ds-dark-theme] .dshmcp-avatar {
 .dshmcp-dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .dshmcp-dialogDanger { background: var(--dsw-alias-state-error-primary); }
 .dshmcp-dialogDanger:hover:not(:disabled) { background: var(--dsw-alias-state-error-primary); opacity: 0.9; }
+.dshmcp-dialogWide {
+  width: min(560px, 100%);
+  max-height: min(82vh, 760px);
+  overflow: auto;
+}
+.dshmcp-marketSelect {
+  box-sizing: border-box;
+  flex: none;
+  max-width: 210px;
+  height: 40px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--dshmcp-hairline);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  outline: none;
+}
+.dshmcp-marketSelect:focus-visible {
+  border-color: transparent;
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-brand-primary));
+  outline-offset: 1px;
+}
+.dshmcp-marketSelect:disabled { opacity: 0.55; cursor: default; }
+.dshmcp-sourceLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 500;
+}
+.dshmcp-sourceLabel::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-brand-primary);
+}
+.dshmcp-sourceSection { display: flex; flex-direction: column; gap: 8px; }
+.dshmcp-sourceSectionTitle { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; }
+.dshmcp-sourceList { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.dshmcp-sourceItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--dshmcp-hairline);
+}
+.dshmcp-sourceItem:last-child { border-bottom: 0; }
+.dshmcp-sourceItem[data-selected='true'] .dshmcp-sourceTitle { color: var(--dsw-alias-brand-primary); }
+.dshmcp-sourceRadio {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 3px 0 0;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+.dshmcp-sourceMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dshmcp-sourceTitleRow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dshmcp-sourceTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.dshmcp-sourceUrl {
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--ds-font-family-code);
+  font-size: 11px;
+  line-height: 16px;
+}
+.dshmcp-sourceActions { flex: none; display: flex; align-items: center; gap: 6px; }
+.dshmcp-sourceForm { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.dshmcp-kindGroup { display: flex; flex-wrap: wrap; gap: 8px; }
+.dshmcp-kindOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--dshmcp-hairline);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12.5px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.dshmcp-kindOption[data-active='true'] {
+  border-color: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-label-primary);
+}
+.dshmcp-kindOption input { flex: none; margin: 0; accent-color: var(--dsw-alias-brand-primary); }
+.dshmcp-sourceNote {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.dshmcp-sourceEmpty { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12.5px; line-height: 18px; }
 @media (max-width: 640px) {
   .dshmcp-page { padding: 0 16px 32px; }
   .dshmcp-grid { grid-template-columns: 1fr; }
@@ -821,6 +927,8 @@ body[data-ds-dark-theme] .dshmcp-avatar {
   .dshmcp-facts dd { text-align: start; }
   .dshmcp-toasts { right: 12px; left: 12px; bottom: 12px; }
   .dshmcp-toast { max-width: none; }
+  .dshmcp-search { flex-wrap: wrap; }
+  .dshmcp-marketSelect { width: 100%; max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .dshmcp-busy,
@@ -1017,16 +1125,19 @@ function SkeletonRows() {
     )))
 }
 
-/** Error card with a retry control. */
-function ErrorState({ t, error, onRetry }) {
+/** Error card with a retry control and an optional source-manager shortcut. */
+function ErrorState({ t, error, onRetry, onManageSources }) {
   const text = errorText(t, error)
   return h('div', { className: 'dshmcp-state' },
     h('span', { className: 'dshmcp-stateIcon dshmcp-stateIconError' }, h(AlertCircleIcon, { size: 20 })),
     h('h2', { className: 'dshmcp-stateTitle' }, t('state.errorTitle')),
     h('p', { className: 'dshmcp-stateBody' }, text.message),
     text.code === null ? null : h('p', { className: 'dshmcp-stateCode' }, formatTemplate(t('state.errorCode'), { code: text.code })),
-    h('div', { style: { marginTop: '8px' } },
+    h('div', { className: 'dshmcp-actions', style: { marginTop: '8px', justifyContent: 'center' } },
       Button({ onClick: onRetry, children: t('action.retry') }),
+      typeof onManageSources === 'function'
+        ? Button({ onClick: onManageSources, children: t('sources.openManager') })
+        : null,
     ),
   )
 }
@@ -1109,9 +1220,250 @@ function ConfirmDialog({ t, request, busy, onCancel, onConfirm }) {
   )))
 }
 
+/** Add/remove/select market sources in a modal dialog. */
+function SourceDialog({ t, open, data, error, busy, onClose, onRetry, onSelect, onRemove, onAdd }) {
+  const titleRef = React.useRef(null)
+  const [title, setTitle] = React.useState('')
+  const [url, setUrl] = React.useState('')
+  const [kind, setKind] = React.useState('mcp-registry')
+  const [fieldErrors, setFieldErrors] = React.useState({})
+  const [submitError, setSubmitError] = React.useState(null)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [selectingId, setSelectingId] = React.useState(null)
+  const [removingId, setRemovingId] = React.useState(null)
+
+  React.useEffect(() => {
+    if (!open) return undefined
+    setFieldErrors({})
+    setSubmitError(null)
+    const onKey = event => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    const timer = setTimeout(() => { titleRef.current?.focus() }, 0)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      clearTimeout(timer)
+    }
+  }, [open, onClose])
+
+  if (!open) return null
+
+  const sources = Array.isArray(data?.sources) ? data.sources : []
+  const selectedId = typeof data?.selected === 'string' ? data.selected : BUILTIN_SOURCE_ID
+  const interactionBusy = busy === true || submitting || selectingId !== null || removingId !== null
+
+  const submit = async event => {
+    event.preventDefault()
+    const errors = validateSourceDraft({ title, url, kind })
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      await onAdd({ title: title.trim(), url: url.trim(), kind })
+      setTitle('')
+      setUrl('')
+      setKind('mcp-registry')
+      setFieldErrors({})
+    } catch (failure) {
+      setSubmitError(failure)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const select = async id => {
+    if (interactionBusy) return
+    setSelectingId(id)
+    setSubmitError(null)
+    try {
+      await onSelect(id)
+    } catch (failure) {
+      setSubmitError(failure)
+    } finally {
+      setSelectingId(null)
+    }
+  }
+
+  const remove = async id => {
+    if (interactionBusy) return
+    setRemovingId(id)
+    setSubmitError(null)
+    try {
+      await onRemove(id)
+    } catch (failure) {
+      setSubmitError(failure)
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  return h('div', {
+    className: 'dshmcp-overlay',
+    onMouseDown: event => {
+      if (event.target === event.currentTarget && interactionBusy === false) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshmcp-dialog dshmcp-dialogWide',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'dshmcp-sources-title',
+    'aria-describedby': 'dshmcp-sources-intro',
+  },
+  h('div', { className: 'dshmcp-panelHead' },
+    h('div', null,
+      h('h2', { className: 'dshmcp-dialogTitle', id: 'dshmcp-sources-title' }, t('sources.dialogTitle')),
+      h('p', { className: 'dshmcp-dialogBody', id: 'dshmcp-sources-intro' }, t('sources.dialogIntro')),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshmcp-iconBtn',
+      'aria-label': t('action.close'),
+      onClick: onClose,
+    }, h(CloseIcon, { size: 15 })),
+  ),
+  error === null || error === undefined ? null : h(Callout, { tone: 'error' },
+    h('span', null,
+      errorText(t, error).message,
+      h('div', { style: { marginTop: '6px' } },
+        Button({ onClick: onRetry, children: t('action.retry') })),
+    )),
+  h('div', { className: 'dshmcp-sourceSection' },
+    h('h3', { className: 'dshmcp-sourceSectionTitle' }, t('sources.existingTitle')),
+    data === null && error === null
+      ? h('p', { className: 'dshmcp-sourceNote' }, t('state.loading'))
+      : sources.length === 0
+        ? h('p', { className: 'dshmcp-sourceEmpty' }, t('sources.empty'))
+        : h('ul', { className: 'dshmcp-sourceList' },
+          sources.map(source => {
+            const sourceTitle = displaySourceTitle(t, source)
+            const selected = source.id === selectedId
+            return h('li', {
+              key: source.id,
+              className: 'dshmcp-sourceItem',
+              'data-selected': selected ? 'true' : 'false',
+            },
+            h('input', {
+              type: 'radio',
+              className: 'dshmcp-sourceRadio',
+              name: 'dshmcp-source-select',
+              checked: selected,
+              disabled: interactionBusy,
+              'aria-label': formatTemplate(t('sources.selectLabel'), { title: sourceTitle }),
+              onChange: () => { void select(source.id) },
+            }),
+            h('div', { className: 'dshmcp-sourceMain' },
+              h('div', { className: 'dshmcp-sourceTitleRow' },
+                h('span', { className: 'dshmcp-sourceTitle' }, sourceTitle),
+                h(Badge, null, sourceKindLabel(t, source.kind)),
+                source.builtin ? h(Badge, { tone: 'brand' }, t('sources.builtin')) : null,
+                selected ? h(Badge, { tone: 'success' }, t('sources.using')) : null,
+              ),
+              h('span', { className: 'dshmcp-sourceUrl' }, source.url),
+            ),
+            h('div', { className: 'dshmcp-sourceActions' },
+              source.builtin
+                ? null
+                : Button({
+                  variant: 'danger',
+                  disabled: interactionBusy,
+                  'aria-label': formatTemplate(t('sources.removeLabel'), { title: sourceTitle }),
+                  onClick: () => { void remove(source.id) },
+                  children: [h(TrashIcon, { key: 'icon', size: 13 }), h('span', { key: 'label' }, t('action.remove'))],
+                }),
+            ))
+          }),
+        ),
+    h('p', { className: 'dshmcp-sourceNote' }, t('sources.builtinHint')),
+  ),
+  h('form', { className: 'dshmcp-sourceForm', onSubmit: submit },
+    h('h3', { className: 'dshmcp-sourceSectionTitle' }, t('sources.addTitle')),
+    h('div', { className: 'dshmcp-field' },
+      h('label', { className: 'dshmcp-label', htmlFor: 'dshmcp-source-title' }, t('sources.titleLabel')),
+      h('input', {
+        id: 'dshmcp-source-title',
+        ref: titleRef,
+        className: 'dshmcp-input',
+        type: 'text',
+        value: title,
+        placeholder: t('sources.titlePlaceholder'),
+        autoComplete: 'off',
+        spellCheck: false,
+        'aria-invalid': fieldErrors.title === undefined ? undefined : 'true',
+        onChange: event => {
+          setTitle(event.currentTarget.value)
+          setFieldErrors(current => {
+            if (current.title === undefined) return current
+            const next = { ...current }
+            delete next.title
+            return next
+          })
+        },
+      }),
+      fieldErrors.title === undefined ? null : h('p', { className: 'dshmcp-fieldError' }, t(fieldErrors.title)),
+    ),
+    h('div', { className: 'dshmcp-field' },
+      h('label', { className: 'dshmcp-label', htmlFor: 'dshmcp-source-url' }, t('sources.urlLabel')),
+      h('input', {
+        id: 'dshmcp-source-url',
+        className: 'dshmcp-input',
+        type: 'url',
+        value: url,
+        placeholder: t('sources.urlPlaceholder'),
+        autoComplete: 'off',
+        spellCheck: false,
+        'aria-invalid': fieldErrors.url === undefined ? undefined : 'true',
+        onChange: event => {
+          setUrl(event.currentTarget.value)
+          setFieldErrors(current => {
+            if (current.url === undefined) return current
+            const next = { ...current }
+            delete next.url
+            return next
+          })
+        },
+      }),
+      fieldErrors.url === undefined ? null : h('p', { className: 'dshmcp-fieldError' }, t(fieldErrors.url)),
+    ),
+    h('div', { className: 'dshmcp-field' },
+      h('span', { className: 'dshmcp-label' }, t('sources.kindLabel')),
+      h('div', { className: 'dshmcp-kindGroup', role: 'radiogroup', 'aria-label': t('sources.kindLabel') },
+        SOURCE_KINDS.map(candidate => h('label', {
+          key: candidate,
+          className: 'dshmcp-kindOption',
+          'data-active': candidate === kind ? 'true' : 'false',
+        },
+        h('input', {
+          type: 'radio',
+          name: 'dshmcp-source-kind',
+          value: candidate,
+          checked: candidate === kind,
+          onChange: () => { setKind(candidate) },
+        }),
+        sourceKindLabel(t, candidate),
+        )),
+      ),
+      fieldErrors.kind === undefined ? null : h('p', { className: 'dshmcp-fieldError' }, t(fieldErrors.kind)),
+      h('p', { className: 'dshmcp-sourceNote' }, t('sources.indexHint')),
+    ),
+    submitError === null ? null : h(Callout, { tone: 'error' }, errorText(t, submitError).message),
+    h('div', { className: 'dshmcp-actions' },
+      Button({
+        type: 'submit',
+        variant: 'primary',
+        disabled: interactionBusy,
+        children: submitting ? t('sources.adding') : t('sources.add'),
+      }),
+    ),
+  )))
+}
+
 /** Search form and result grid for the Discover view. */
-function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, onOpen, onRetry }) {
+function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, onOpen, onRetry, sourcesData, activeSourceId, activeSourceTitle, sourcesLoading, onSelectSource, onManageSources, showManage }) {
   const hasServers = state.servers.length > 0
+  const sources = Array.isArray(sourcesData?.sources) ? sourcesData.sources : []
   return h(React.Fragment, null,
     h('form', {
       className: 'dshmcp-search',
@@ -1121,6 +1473,26 @@ function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, on
         onSearchNow()
       },
     },
+    h('select', {
+      className: 'dshmcp-marketSelect',
+      'aria-label': t('sources.switcherLabel'),
+      value: activeSourceId,
+      disabled: sourcesLoading,
+      title: activeSourceTitle,
+      onChange: event => {
+        const value = event.currentTarget.value
+        if (value === '__manage__') {
+          onManageSources()
+          return
+        }
+        onSelectSource(value)
+      },
+    },
+    sources.length === 0
+      ? h('option', { value: activeSourceId }, sourcesLoading ? t('sources.loading') : activeSourceTitle)
+      : sources.map(source => h('option', { key: source.id, value: source.id }, displaySourceTitle(t, source))),
+    sourcesLoading ? null : h('option', { value: '__manage__' }, t('sources.manage')),
+    ),
     h('div', { className: 'dshmcp-searchBox' },
       h('span', { className: 'dshmcp-searchIcon' }, h(SearchIcon, { size: 16 })),
       h('input', {
@@ -1146,6 +1518,7 @@ function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, on
     h('div', { className: 'dshmcp-srOnly', role: 'status', 'aria-live': 'polite' }, state.busy ? t('search.busy') : ''),
     h('div', { className: 'dshmcp-busy', 'data-on': state.busy ? 'true' : 'false', 'aria-hidden': 'true' }),
     h('div', { className: 'dshmcp-metaLine' },
+      h('span', { className: 'dshmcp-sourceLabel' }, formatTemplate(t('search.market'), { title: activeSourceTitle })),
       state.status === 'ready' && hasServers
         ? h('span', null, formatTemplate(t('search.results'), { count: state.servers.length }))
         : null,
@@ -1155,7 +1528,13 @@ function DiscoverView({ t, state, searchInput, onInput, onSearchNow, onClear, on
       ? h('div', { style: { marginTop: '12px' } }, h(Callout, { tone: 'warn' }, errorText(t, state.error).message))
       : null,
     state.status === 'loading' && !hasServers ? SkeletonGrid()
-      : state.status === 'error' && !hasServers ? ErrorState({ t, error: state.error, onRetry })
+      : state.status === 'error' && !hasServers
+        ? ErrorState({
+          t,
+          error: state.error,
+          onRetry,
+          onManageSources: showManage ? onManageSources : undefined,
+        })
         : state.status === 'ready' && !hasServers
           ? EmptyState({
             t,
@@ -1455,7 +1834,7 @@ function InstallPanel({ t, registryName, previewState, onRetry, onSubmit, onClos
 }
 
 /** Detail page for one server. */
-function DetailView({ t, state, onBack, onRetry, onInstall, installState, installProps }) {
+function DetailView({ t, state, onBack, onRetry, onInstall, installState, installProps, activeSourceTitle, showManage, onManageSources }) {
   if (state.status === 'loading' && state.server === null) {
     return h('div', { className: 'dshmcp-detail' },
       h('button', { type: 'button', className: 'dshmcp-back', onClick: onBack }, h(ChevronLeftIcon, { size: 15 }), t('action.back')),
@@ -1465,7 +1844,12 @@ function DetailView({ t, state, onBack, onRetry, onInstall, installState, instal
   if (state.server === null) {
     return h('div', { className: 'dshmcp-detail' },
       h('button', { type: 'button', className: 'dshmcp-back', onClick: onBack }, h(ChevronLeftIcon, { size: 15 }), t('action.back')),
-      ErrorState({ t, error: state.error, onRetry }),
+      ErrorState({
+        t,
+        error: state.error,
+        onRetry,
+        onManageSources: showManage ? onManageSources : undefined,
+      }),
     )
   }
   const server = state.server
@@ -1486,6 +1870,9 @@ function DetailView({ t, state, onBack, onRetry, onInstall, installState, instal
           kinds.includes('remote') ? h(Badge, null, t('detail.remote')) : null,
           kinds.includes('package') ? h(Badge, null, t('detail.package')) : null,
           kinds.length === 0 ? h(Badge, { tone: 'warn' }, t('card.notSupported')) : null,
+          activeSourceTitle === undefined || activeSourceTitle.length === 0
+            ? null
+            : h(Badge, null, formatTemplate(t('search.market'), { title: activeSourceTitle })),
         ),
       ),
     ),
@@ -1539,6 +1926,7 @@ function InstalledRow({ t, row, busy, onToggle, onRemove, external }) {
   const kind = row.transport === 'streamable-http' ? t('card.remote') : t('card.package')
   const installedAt = formatDate(row.installedAt)
   const toolLabel = row.toolCount > 0 ? formatTemplate(t('installed.tools'), { count: row.toolCount }) : t('installed.noTools')
+  const sourceLabel = external ? '' : installedSourceLabel(t, row)
   return h('li', { className: 'dshmcp-row', 'data-enabled': row.enabled ? 'true' : 'false' },
     h(Avatar, { title: row.title, name: row.serverName, size: 'sm' }),
     h('div', { className: 'dshmcp-rowMain' },
@@ -1550,6 +1938,9 @@ function InstalledRow({ t, row, busy, onToggle, onRemove, external }) {
       h('div', { className: 'dshmcp-rowMeta' },
         h('code', null, row.serverName),
         h('span', null, kind),
+        sourceLabel.length === 0
+          ? null
+          : h('span', null, formatTemplate(t('installed.source'), { title: sourceLabel })),
         external ? null : h('span', null, formatTemplate(t('installed.versionLabel'), { version: row.version || '—' })),
         external ? null : h('span', null, toolLabel),
         installedAt.length === 0 ? null : h('span', null, formatTemplate(t('installed.installedAt'), { date: installedAt })),
@@ -1694,12 +2085,17 @@ function createMcpMarketPage(boundT) {
     const [lastFeedback, setLastFeedback] = React.useState(null)
     const [busyRow, setBusyRow] = React.useState(null)
     const [confirmRow, setConfirmRow] = React.useState(null)
+    const [sourcesState, setSourcesState] = React.useState({ status: 'loading', data: null, error: null })
+    const [sourcesOpen, setSourcesOpen] = React.useState(false)
+    const [sourcesBusy, setSourcesBusy] = React.useState(false)
     const searchSequence = React.useRef(0)
     const detailSequence = React.useRef(0)
     const installedSequence = React.useRef(0)
+    const sourcesSequence = React.useRef(0)
 
-    const runSearch = React.useCallback(async value => {
+    const runSearch = React.useCallback(async (value, sourceId) => {
       const normalized = String(value ?? '').trim()
+      const source = typeof sourceId === 'string' && sourceId.length > 0 ? sourceId : BUILTIN_SOURCE_ID
       const sequence = ++searchSequence.current
       setQuery(normalized)
       setSearchState(current => ({
@@ -1710,7 +2106,10 @@ function createMcpMarketPage(boundT) {
         error: null,
       }))
       try {
-        const data = await requestJson(`/search?q=${encodeURIComponent(normalized)}`, { timeoutMs: TIMEOUTS.search })
+        const data = await requestJson(
+          `/search?q=${encodeURIComponent(normalized)}&source=${encodeURIComponent(source)}`,
+          { timeoutMs: TIMEOUTS.search },
+        )
         if (sequence !== searchSequence.current) return
         setSearchState({
           status: 'ready',
@@ -1729,6 +2128,104 @@ function createMcpMarketPage(boundT) {
         }))
       }
     }, [])
+
+    const loadSources = React.useCallback(async () => {
+      const sequence = ++sourcesSequence.current
+      setSourcesState(current => ({
+        ...current,
+        status: current.data === null ? 'loading' : 'ready',
+        error: null,
+      }))
+      try {
+        const data = await requestJson('/sources', { timeoutMs: TIMEOUTS.mutation })
+        if (sequence !== sourcesSequence.current) return null
+        setSourcesState({ status: 'ready', data, error: null })
+        return data
+      } catch (error) {
+        if (sequence !== sourcesSequence.current) return null
+        setSourcesState(current => ({
+          ...current,
+          status: current.data === null ? 'error' : 'ready',
+          error,
+        }))
+        return null
+      }
+    }, [])
+
+    const sourcesData = sourcesState.data
+    const sourceList = Array.isArray(sourcesData?.sources) ? sourcesData.sources : []
+    const activeSourceId = typeof sourcesData?.selected === 'string' ? sourcesData.selected : BUILTIN_SOURCE_ID
+    const activeSource = sourceList.find(source => source.id === activeSourceId) ?? null
+    const activeSourceTitle = activeSource === null ? t('sources.builtinTitle') : displaySourceTitle(t, activeSource)
+    const sourcesLoading = sourcesState.status === 'loading' && sourcesData === null
+    const showManage = true
+
+    const selectSource = React.useCallback(async id => {
+      setSourcesBusy(true)
+      try {
+        const data = await requestJson('/sources', {
+          method: 'POST',
+          body: { action: 'select', id },
+          timeoutMs: TIMEOUTS.mutation,
+        })
+        setSourcesState({ status: 'ready', data, error: null })
+        setView('discover')
+        setDetailState({ status: 'idle', server: null, error: null })
+        setInstallState({ open: false, status: 'idle', preview: null, error: null })
+        await runSearch(searchInput, id)
+        return data
+      } finally {
+        setSourcesBusy(false)
+      }
+    }, [runSearch, searchInput])
+
+    const addSource = React.useCallback(async input => {
+      setSourcesBusy(true)
+      try {
+        const data = await requestJson('/sources', {
+          method: 'POST',
+          body: { action: 'add', kind: input.kind, title: input.title, url: input.url },
+          timeoutMs: TIMEOUTS.mutation,
+        })
+        setSourcesState({ status: 'ready', data, error: null })
+        const created = data?.source?.id
+        if (typeof created === 'string' && created.length > 0) {
+          const selected = await requestJson('/sources', {
+            method: 'POST',
+            body: { action: 'select', id: created },
+            timeoutMs: TIMEOUTS.mutation,
+          })
+          setSourcesState({ status: 'ready', data: selected, error: null })
+          setSourcesOpen(false)
+          setView('discover')
+          setDetailState({ status: 'idle', server: null, error: null })
+          setInstallState({ open: false, status: 'idle', preview: null, error: null })
+          await runSearch(searchInput, created)
+        }
+        return data
+      } finally {
+        setSourcesBusy(false)
+      }
+    }, [runSearch, searchInput])
+
+    const removeSource = React.useCallback(async id => {
+      setSourcesBusy(true)
+      try {
+        const data = await requestJson('/sources', {
+          method: 'POST',
+          body: { action: 'remove', id },
+          timeoutMs: TIMEOUTS.mutation,
+        })
+        setSourcesState({ status: 'ready', data, error: null })
+        setView('discover')
+        setDetailState({ status: 'idle', server: null, error: null })
+        setInstallState({ open: false, status: 'idle', preview: null, error: null })
+        await runSearch(searchInput, data?.selected)
+        return data
+      } finally {
+        setSourcesBusy(false)
+      }
+    }, [runSearch, searchInput])
 
     const loadInstalled = React.useCallback(async () => {
       const sequence = ++installedSequence.current
@@ -1749,8 +2246,14 @@ function createMcpMarketPage(boundT) {
     }, [])
 
     React.useEffect(() => {
-      void runSearch('')
-    }, [runSearch])
+      let cancelled = false
+      ;(async () => {
+        const data = await loadSources()
+        if (cancelled) return
+        await runSearch('', data?.selected ?? BUILTIN_SOURCE_ID)
+      })()
+      return () => { cancelled = true }
+    }, [loadSources, runSearch])
 
     React.useEffect(() => {
       void loadInstalled()
@@ -1764,9 +2267,11 @@ function createMcpMarketPage(boundT) {
     React.useEffect(() => {
       const normalized = searchInput.trim()
       if (normalized === query) return undefined
-      const timer = setTimeout(() => { void runSearch(normalized) }, SEARCH_DEBOUNCE_MS)
+      const timer = setTimeout(() => {
+        void runSearch(normalized, activeSourceId)
+      }, SEARCH_DEBOUNCE_MS)
       return () => { clearTimeout(timer) }
-    }, [searchInput, query, runSearch])
+    }, [searchInput, query, runSearch, activeSourceId])
 
     const openDetail = React.useCallback(async server => {
       setView('detail')
@@ -1774,14 +2279,17 @@ function createMcpMarketPage(boundT) {
       const sequence = ++detailSequence.current
       setDetailState({ status: 'ready', server, error: null })
       try {
-        const data = await requestJson(`/detail?name=${encodeURIComponent(server.name)}`, { timeoutMs: TIMEOUTS.detail })
+        const data = await requestJson(
+          `/detail?name=${encodeURIComponent(server.name)}&source=${encodeURIComponent(activeSourceId)}`,
+          { timeoutMs: TIMEOUTS.detail },
+        )
         if (sequence !== detailSequence.current) return
         setDetailState({ status: 'ready', server: data, error: null })
       } catch (error) {
         if (sequence !== detailSequence.current) return
         setDetailState({ status: 'ready', server, error })
       }
-    }, [])
+    }, [activeSourceId])
 
     const backToDiscover = React.useCallback(() => {
       detailSequence.current += 1
@@ -1799,14 +2307,14 @@ function createMcpMarketPage(boundT) {
       try {
         const preview = await requestJson('/preview', {
           method: 'POST',
-          body: { registryName: server.name },
+          body: { registryName: server.name, source: activeSourceId },
           timeoutMs: TIMEOUTS.preview,
         })
         setInstallState({ open: true, status: 'ready', preview, error: null })
       } catch (error) {
         setInstallState({ open: true, status: 'error', preview: null, error })
       }
-    }, [])
+    }, [activeSourceId])
 
     const openInstall = React.useCallback(() => {
       if (detailState.server === null) return
@@ -1820,7 +2328,7 @@ function createMcpMarketPage(boundT) {
     const submitInstall = React.useCallback(async body => {
       const result = await requestJson('/install', {
         method: 'POST',
-        body,
+        body: { ...body, source: activeSourceId },
         timeoutMs: TIMEOUTS.mutation,
       })
       setLastFeedback(result)
@@ -1828,7 +2336,7 @@ function createMcpMarketPage(boundT) {
       push('success', formatTemplate(body.replace ? t('toast.replaced') : t('toast.installed'), { name }))
       await loadInstalled()
       return result
-    }, [detailState.server, loadInstalled, push, t])
+    }, [activeSourceId, detailState.server, loadInstalled, push, t])
 
     const toggleRow = React.useCallback(async row => {
       setBusyRow(row.rowId)
@@ -1933,21 +2441,43 @@ function createMcpMarketPage(boundT) {
               onInstall: () => { void openInstall() },
               installState,
               installProps: { panel: installPanel },
+              activeSourceTitle,
+              showManage,
+              onManageSources: () => { setSourcesOpen(true); },
             })
             : h(DiscoverView, {
               t,
               state: searchState,
               searchInput,
               onInput: setSearchInput,
-              onSearchNow: () => { void runSearch(searchInput) },
+              onSearchNow: () => { void runSearch(searchInput, activeSourceId) },
               onClear: () => {
                 setSearchInput('')
-                void runSearch('')
+                void runSearch('', activeSourceId)
               },
               onOpen: server => { void openDetail(server) },
-              onRetry: () => { void runSearch(query) },
+              onRetry: () => { void runSearch(query, activeSourceId) },
+              sourcesData,
+              activeSourceId,
+              activeSourceTitle,
+              sourcesLoading,
+              onSelectSource: id => { void selectSource(id); },
+              onManageSources: () => { setSourcesOpen(true); },
+              showManage,
             }),
       ),
+      h(SourceDialog, {
+        t,
+        open: sourcesOpen,
+        data: sourcesData,
+        error: sourcesState.error,
+        busy: sourcesBusy,
+        onClose: () => { if (!sourcesBusy) setSourcesOpen(false); },
+        onRetry: () => { void loadSources(); },
+        onSelect: id => selectSource(id),
+        onRemove: id => removeSource(id),
+        onAdd: input => addSource(input),
+      }),
       h(ToastViewport, { t, toasts, onDismiss: dismiss }),
       h(ConfirmDialog, {
         t,

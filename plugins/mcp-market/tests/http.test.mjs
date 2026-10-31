@@ -186,3 +186,54 @@ test('search and detail unpack query parameters', async () => {
   assert.equal(detailResponse.statusCode, 400)
   assert.equal(JSON.parse(detailResponse.body).error.code, 'mcp/invalid-entry')
 })
+
+test('source routes list and mutate through the service', async () => {
+  const calls = []
+  const { service } = stubService({
+    sources: async () => ({ version: 1, selected: 'mcp-registry', sources: [{ id: 'mcp-registry', kind: 'mcp-registry', title: 'MCP Registry', url: 'https://registry.modelcontextprotocol.io', builtin: true }] }),
+    sourceAction: async body => {
+      calls.push(body)
+      return { selected: body?.id ?? 'mcp-registry', sources: [] }
+    },
+  })
+  const handler = createRequestHandler({ service })
+  let response = fakeResponse()
+  await handler(fakeRequest({ url: '/dsh-mcp-market/api/sources' }), response)
+  assert.equal(response.statusCode, 200)
+  assert.equal(JSON.parse(response.body).selected, 'mcp-registry')
+
+  response = fakeResponse()
+  await handler(fakeRequest({
+    method: 'POST',
+    url: '/dsh-mcp-market/api/sources',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'add', kind: 'index', title: 'Team', url: 'https://example.test/index.json' }),
+  }), response)
+  assert.equal(response.statusCode, 200)
+  assert.equal(calls[0].action, 'add')
+})
+
+test('search and detail accept a source id', async () => {
+  const calls = []
+  const { service } = stubService({
+    search: async (query, cursor, sourceId) => {
+      calls.push(['search', query, cursor, sourceId])
+      return { query, servers: [], cached: false }
+    },
+    detail: async (name, sourceId) => {
+      calls.push(['detail', name, sourceId])
+      return { name }
+    },
+  })
+  const handler = createRequestHandler({ service })
+  let response = fakeResponse()
+  await handler(fakeRequest({ url: '/dsh-mcp-market/api/search?q=pdf&source=custom-00000000' }), response)
+  assert.equal(response.statusCode, 200)
+  response = fakeResponse()
+  await handler(fakeRequest({ url: '/dsh-mcp-market/api/detail?name=acme%2Fecho&source=custom-00000000' }), response)
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(calls, [
+    ['search', 'pdf', undefined, 'custom-00000000'],
+    ['detail', 'acme/echo', 'custom-00000000'],
+  ])
+})

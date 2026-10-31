@@ -253,3 +253,64 @@ test('createRouteHandler never rejects', async (t) => {
   assert.equal(res.statusCode, 500)
   assert.equal(res.json().error.code, 'internal/error')
 })
+
+test('source routes list, add, remove, and select through the service', async () => {
+  const calls = []
+  const service = createService({
+    async sources() {
+      calls.push(['sources'])
+      return { version: 1, selected: 'skills-sh', sources: [{ id: 'skills-sh', kind: 'skills-sh', title: 'skills.sh', url: 'https://www.skills.sh', builtin: true }] }
+    },
+    async addSource(input) {
+      calls.push(['add', input])
+      return { selected: 'skills-sh', sources: [], source: { id: 'custom-00000000' } }
+    },
+    async removeSource(id) {
+      calls.push(['remove', id])
+      return { selected: 'skills-sh', sources: [] }
+    },
+    async selectSource(id) {
+      calls.push(['select', id])
+      return { selected: id, sources: [] }
+    },
+  })
+  const headers = { 'content-type': 'application/json' }
+  let response = await call(service, { url: '/dsh-skills-market/api/sources' })
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().sources.length, 1)
+
+  response = await call(service, {
+    method: 'POST',
+    url: '/dsh-skills-market/api/sources',
+    headers,
+    body: JSON.stringify({ action: 'add', kind: 'index', title: 'Team', url: 'https://example.test/index.json' }),
+  })
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(calls.at(-1), ['add', { kind: 'index', title: 'Team', url: 'https://example.test/index.json' }])
+
+  response = await call(service, { method: 'POST', url: '/dsh-skills-market/api/sources', headers, body: JSON.stringify({ action: 'select', id: 'custom-00000000' }) })
+  assert.equal(response.statusCode, 200)
+  response = await call(service, { method: 'POST', url: '/dsh-skills-market/api/sources', headers, body: JSON.stringify({ action: 'remove', id: 'custom-00000000' }) })
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(calls.slice(-2), [['select', 'custom-00000000'], ['remove', 'custom-00000000']])
+})
+
+test('search and detail pass the market source id', async () => {
+  const calls = []
+  const service = createService({
+    async search(query, sourceId) {
+      calls.push(['search', query, sourceId])
+      return { seed: false, query, skills: [], cached: false }
+    },
+    async detail(repo, skillId, market) {
+      calls.push(['detail', repo, skillId, market])
+      return { description: '', pageUrl: 'https://example.test' }
+    },
+  })
+  await call(service, { url: '/dsh-skills-market/api/search?q=pdf&source=custom-00000000' })
+  await call(service, { url: '/dsh-skills-market/api/detail?market=custom-00000000&repo=acme/skills&skill=demo' })
+  assert.deepEqual(calls, [
+    ['search', 'pdf', 'custom-00000000'],
+    ['detail', 'acme/skills', 'demo', 'custom-00000000'],
+  ])
+})

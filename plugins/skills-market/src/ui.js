@@ -24,6 +24,12 @@ const ERROR_KEYS = Object.freeze({
   'skills/not-managed': 'errorNotManaged',
   'skills/staging-expired': 'errorStagingExpired',
   'skills/install-failed': 'errorInstall',
+  'sources/invalid': 'errorSourceInvalid',
+  'sources/limit': 'errorSourceLimit',
+  'sources/not-found': 'errorSourceNotFound',
+  'sources/builtin': 'errorSourceBuiltin',
+  'sources/fetch-failed': 'errorSourceFetch',
+  'sources/invalid-index': 'errorSourceInvalidIndex',
   timeout: 'errorTimeout',
   network: 'errorFetch',
 })
@@ -111,6 +117,48 @@ html[data-platform='darwin'] .dshsm-head { padding-top: calc(28px + var(--dsh-fr
   font-weight: 500;
 }
 .dshsm-toolbar { display: flex; align-items: center; gap: 12px; }
+.dshsm-sourcePick { flex: none; min-width: 0; }
+.dshsm-sourceSelect {
+  box-sizing: border-box;
+  max-width: 220px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.dshsm-sourceSelect:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}
+.dshsm-sourceSelect:disabled { color: var(--dsw-alias-label-tertiary); cursor: default; }
+@media (max-width: 720px) {
+  .dshsm-toolbar { flex-wrap: wrap; }
+  .dshsm-sourceSelect { max-width: 100%; width: 100%; }
+  .dshsm-sourcePick { width: 100%; }
+}
+.dshsm-marketPicker { display: inline-flex; flex: none; min-width: 0; max-width: 220px; }
+.dshsm-marketSelect {
+  box-sizing: border-box;
+  max-width: 220px;
+  height: 40px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.dshsm-marketSelect:disabled { opacity: 0.65; cursor: default; }
 .dshsm-search {
   box-sizing: border-box;
   display: flex;
@@ -221,6 +269,8 @@ html[data-platform='darwin'] .dshsm-head { padding-top: calc(28px + var(--dsh-fr
   line-height: 20px;
   font-weight: 500;
 }
+.dshsm-resultsSource { color: var(--dsw-alias-label-primary); font-weight: 500; }
+.dshsm-resultsSep { margin: 0 6px; color: var(--dsw-alias-label-caption); }
 .dshsm-resultsHint {
   color: var(--dsw-alias-label-caption);
   font-size: 12px;
@@ -377,6 +427,14 @@ body[data-ds-dark-theme] .dshsm-avatar {
   color: var(--dsw-alias-label-tertiary);
   font-size: 13px;
   line-height: 20px;
+}
+.dshsm-stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
 }
 .dshsm-detail { display: flex; flex-direction: column; gap: 18px; }
 .dshsm-back {
@@ -791,6 +849,110 @@ body[data-ds-dark-theme] .dshsm-avatar {
   font-size: 12px;
   line-height: 18px;
 }
+.dshsm-sourceSection { display: flex; flex-direction: column; gap: 6px; }
+.dshsm-sourceList { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.dshsm-sourceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 10px;
+}
+@media (hover: hover) {
+  .dshsm-sourceRow:hover { background: var(--dsw-alias-interactive-bg-hover); }
+}
+.dshsm-sourceMain { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.dshsm-sourceTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13.5px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.dshsm-sourceUrl {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+.dshsm-sourceActions { display: flex; flex: none; align-items: center; gap: 6px; }
+.dshsm-sourceForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+.dshsm-field { display: flex; flex-direction: column; gap: 4px; }
+.dshsm-fieldLabel {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 500;
+}
+.dshsm-field input {
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+}
+.dshsm-field input::placeholder { color: var(--dsw-alias-label-caption); }
+.dshsm-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.dshsm-segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+.dshsm-segment {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12.5px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.dshsm-segment input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.dshsm-segmentActive {
+  background: var(--dsw-alias-button-ghost-active-fill);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+.dshsm-formError {
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-error-primary) 34%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12.5px;
+  line-height: 18px;
+}
+.dshsm-formActions { display: flex; justify-content: flex-end; gap: 8px; }
+.dshsm-avatarSm { width: 28px; height: 28px; border-radius: 8px; font-size: 12px; }
 .dshsm-toasts {
   position: fixed;
   bottom: 28px;
@@ -842,7 +1004,10 @@ body[data-ds-dark-theme] .dshsm-avatar {
 .dshsm-searchClear:focus-visible,
 .dshsm-back:focus-visible,
 .dshsm-link:focus-visible,
-.dshsm-kvValue a:focus-visible {
+.dshsm-kvValue a:focus-visible,
+.dshsm-marketSelect:focus-visible,
+.dshsm-field input:focus-visible,
+.dshsm-segment:focus-within {
   outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-brand-primary));
   outline-offset: 2px;
 }
@@ -887,13 +1052,22 @@ function cx(...parts) {
 }
 
 /**
- * Build the catalog page URL for one entry.
+ * Build the catalog page URL for one entry, preferring an index-provided URL.
  * @param entry - catalog entry.
+ * @param source - active source metadata.
  * @returns the skill page URL.
  */
-function skillPageUrl(entry) {
-  const [owner = '', repo = ''] = String(entry.source ?? '').split('/')
-  return `https://www.skills.sh/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(String(entry.skillId ?? ''))}`
+function skillPageUrl(entry, source) {
+  return pageUrlOf(entry, source) ?? ''
+}
+
+/**
+ * Dictionary key for one source kind.
+ * @param kind - source kind.
+ * @returns the locale key.
+ */
+function sourceKindKey(kind) {
+  return kind === 'index' ? 'sourceKindIndex' : 'sourceKindSkillsSh'
 }
 
 /**
@@ -1028,7 +1202,7 @@ function PanelIcon({ size = 18 }) {
 function Monogram({ name, size = 'md' }) {
   const monogram = monogramOf(name)
   return h('span', {
-    className: cx('dshsm-avatar', size === 'lg' && 'dshsm-avatarLg'),
+    className: cx('dshsm-avatar', size === 'lg' && 'dshsm-avatarLg', size === 'sm' && 'dshsm-avatarSm'),
     style: { '--dshsm-hue': monogram.hue },
     'aria-hidden': 'true',
   }, monogram.letter)
@@ -1075,16 +1249,29 @@ function SkeletonRow() {
  * Error state with a retry affordance.
  * @param props - `{ t, title, body, onRetry, compact }`.
  */
-function ErrorState({ t, title, body, onRetry, compact = false }) {
+function ErrorState({ t, title, body, onRetry, compact = false, secondaryLabel, onSecondary }) {
+  const actions = []
+  if (onRetry !== undefined) {
+    actions.push(h('button', {
+      key: 'retry',
+      type: 'button',
+      className: 'dshsm-btn',
+      onClick: onRetry,
+    }, t('retry')))
+  }
+  if (onSecondary !== undefined && secondaryLabel !== undefined) {
+    actions.push(h('button', {
+      key: 'secondary',
+      type: 'button',
+      className: 'dshsm-btn',
+      onClick: onSecondary,
+    }, secondaryLabel))
+  }
   return h('div', { className: cx('dshsm-state', compact && 'dshsm-stateCompact'), role: 'alert' },
     h('span', { className: 'dshsm-stateIcon' }, h(AlertIcon, { size: compact ? 20 : 28 })),
     h('div', { className: 'dshsm-stateTitle' }, title ?? t('errorTitle')),
     body === undefined ? null : h('p', { className: 'dshsm-stateBody' }, body),
-    onRetry === undefined ? null : h('button', {
-      type: 'button',
-      className: 'dshsm-btn',
-      onClick: onRetry,
-    }, t('retry')),
+    actions.length === 0 ? null : h('div', { className: 'dshsm-stateActions' }, actions),
   )
 }
 
@@ -1102,6 +1289,174 @@ function EmptyState({ t, title, body, actionLabel, onAction }) {
       className: 'dshsm-btn dshsm-btnPrimary',
       onClick: onAction,
     }, actionLabel),
+  )
+}
+
+/**
+ * Market-source manager dialog.
+ *
+ * Lists every source (builtin badge, kind, URL, select/remove actions) and
+ * contains the add form. Esc closes it, focus starts on the title field, and
+ * all actions carry labels.
+ * @param props - `{ t, sources, form, formError, busy, onClose, onRetry,
+ *   onFormChange, onSubmit, onSelect, onRemove }`.
+ */
+function SourceDialog({
+  t,
+  sources,
+  form,
+  formError,
+  busy,
+  onClose,
+  onRetry,
+  onFormChange,
+  onSubmit,
+  onSelect,
+  onRemove,
+}) {
+  const titleRef = React.useRef(null)
+  React.useEffect(() => {
+    const previous = typeof document === 'undefined' ? null : document.activeElement
+    if (titleRef.current !== null && typeof titleRef.current.focus === 'function') titleRef.current.focus()
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape' || busy) return
+      event.preventDefault()
+      onClose()
+    }
+    if (typeof window !== 'undefined') window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      if (typeof window !== 'undefined') window.removeEventListener('keydown', onKeyDown, true)
+      if (previous !== null && typeof previous.focus === 'function') previous.focus()
+    }
+  }, [busy, onClose])
+
+  const list = sources !== null && Array.isArray(sources.items) ? sources.items : []
+  const selectedId = sources !== null && typeof sources.selected === 'string' ? sources.selected : ''
+  const loadError = sources !== null && sources.status === 'error' ? sources.error : null
+  const kindOptions = SOURCE_KINDS.map((kind) => h('label', {
+    key: kind,
+    className: cx('dshsm-segment', form.kind === kind && 'dshsm-segmentActive'),
+  },
+  h('input', {
+    type: 'radio',
+    name: 'dshsm-source-kind',
+    value: kind,
+    checked: form.kind === kind,
+    onChange: () => onFormChange({ ...form, kind }),
+  }),
+  h('span', null, t(sourceKindKey(kind))),
+  ))
+
+  return h('div', {
+    className: 'dshsm-overlay',
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget && !busy) onClose()
+    },
+  },
+  h('div', {
+    className: 'dshsm-dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-label': t('sourceDialogTitle'),
+    tabIndex: -1,
+  },
+  h('div', { className: 'dshsm-dialogHead' },
+    h('div', { className: 'dshsm-dialogTitleWrap' },
+      h('h2', { className: 'dshsm-dialogTitle' }, t('sourceDialogTitle')),
+      h('div', { className: 'dshsm-dialogSubtitle' }, t('sourceDialogSubtitle')),
+    ),
+    h('button', {
+      type: 'button',
+      className: 'dshsm-iconBtn',
+      'aria-label': t('sourceClose'),
+      onClick: onClose,
+      disabled: busy,
+    }, h(CloseIcon, { size: 16 })),
+  ),
+  h('div', { className: 'dshsm-dialogBody' },
+    h('div', { className: 'dshsm-sourceSection' },
+      h('div', { className: 'dshsm-sectionTitle' }, t('sourceListTitle')),
+      loadError === null ? null : h(ErrorState, {
+        t,
+        compact: true,
+        title: t('sourceLoadFailed'),
+        body: describeError(t, loadError),
+        onRetry,
+      }),
+      h('ul', { className: 'dshsm-sourceList' }, list.map((source) => h('li', {
+        key: source.id,
+        className: 'dshsm-sourceRow',
+      },
+      h(Monogram, { name: source.title, size: 'sm' }),
+      h('div', { className: 'dshsm-sourceMain' },
+        h('div', { className: 'dshsm-sourceTitle' },
+          h('span', null, source.title),
+          source.builtin ? h('span', { className: 'dshsm-badge' }, t('sourceBuiltin')) : null,
+          h('span', { className: 'dshsm-badge' }, t(sourceKindKey(source.kind))),
+        ),
+        h('div', { className: 'dshsm-sourceUrl' }, source.url),
+      ),
+      h('div', { className: 'dshsm-sourceActions' },
+        source.id === selectedId
+          ? h('span', { className: 'dshsm-badge' }, t('sourceActive'))
+          : h('button', {
+            type: 'button',
+            className: 'dshsm-btn dshsm-btnSmall',
+            disabled: busy,
+            onClick: () => onSelect(source.id),
+          }, t('sourceUse')),
+        source.builtin ? null : h('button', {
+          type: 'button',
+          className: 'dshsm-btn dshsm-btnSmall dshsm-btnDanger',
+          'aria-label': t('sourceRemoveAria', { title: source.title }),
+          disabled: busy,
+          onClick: () => onRemove(source.id),
+        }, t('sourceRemove')),
+      ),
+      ))),
+    ),
+    h('form', { className: 'dshsm-sourceForm', onSubmit },
+      h('div', { className: 'dshsm-sectionTitle' }, t('sourceAddTitle')),
+      h('label', { className: 'dshsm-field' },
+        h('span', { className: 'dshsm-fieldLabel' }, t('sourceTitleLabel')),
+        h('input', {
+          ref: titleRef,
+          type: 'text',
+          value: form.title,
+          maxLength: 80,
+          placeholder: t('sourceTitlePlaceholder'),
+          autoComplete: 'off',
+          onChange: (event) => onFormChange({ ...form, title: event.currentTarget.value }),
+        }),
+      ),
+      h('label', { className: 'dshsm-field' },
+        h('span', { className: 'dshsm-fieldLabel' }, t('sourceUrlLabel')),
+        h('input', {
+          type: 'url',
+          value: form.url,
+          maxLength: 2048,
+          placeholder: t('sourceUrlPlaceholder'),
+          autoComplete: 'off',
+          spellCheck: false,
+          onChange: (event) => onFormChange({ ...form, url: event.currentTarget.value }),
+        }),
+      ),
+      h('fieldset', { className: 'dshsm-fieldset' },
+        h('legend', { className: 'dshsm-fieldLabel' }, t('sourceKindLabel')),
+        h('div', { className: 'dshsm-segmented' }, kindOptions),
+      ),
+      h('p', { className: 'dshsm-note' }, form.kind === 'index' ? t('sourceIndexNote') : t('sourceBaseNote')),
+      formError === null ? null : h('div', { className: 'dshsm-formError', role: 'alert' }, describeError(t, formError)),
+      h('div', { className: 'dshsm-formActions' },
+        h('button', {
+          type: 'submit',
+          className: 'dshsm-btn dshsm-btnPrimary',
+          disabled: busy,
+        }, busy ? t('sourceAdding') : t('sourceAdd')),
+      ),
+    ),
+  ),
+  ),
   )
 }
 
@@ -1318,9 +1673,15 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       warning: null,
       error: null,
       query: '',
+      source: null,
     })
     const [descriptions, setDescriptions] = React.useState({})
     const [installed, setInstalled] = React.useState({ status: 'idle', items: [], error: null })
+    const [sources, setSources] = React.useState({ status: 'loading', items: [], selected: '', error: null })
+    const [sourcesOpen, setSourcesOpen] = React.useState(false)
+    const [sourceForm, setSourceForm] = React.useState({ kind: 'skills-sh', title: '', url: '' })
+    const [sourceFormError, setSourceFormError] = React.useState(null)
+    const [sourceBusy, setSourceBusy] = React.useState(false)
     const [preview, setPreview] = React.useState(null)
     const [installing, setInstalling] = React.useState(false)
     const [removal, setRemoval] = React.useState({ name: null, armed: null, busy: false })
@@ -1357,13 +1718,116 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       return () => { clearTimeout(timer) }
     }, [toasts])
 
+    const activeSource = sources.items.find((source) => source.id === sources.selected) ?? sources.items[0] ?? null
+    const activeSourceId = activeSource === null ? undefined : activeSource.id
+
+    const loadSources = React.useCallback(async () => {
+      setSources((previous) => ({ ...previous, status: 'loading', error: null }))
+      try {
+        const payload = await api.sources()
+        const normalized = normalizeSources(payload)
+        setSources({ status: 'ready', items: normalized.sources, selected: normalized.selected, error: null })
+      } catch (error) {
+        setSources((previous) => ({ ...previous, status: 'error', error }))
+      }
+    }, [api])
+
+    React.useEffect(() => {
+      void loadSources()
+    }, [loadSources])
+
+    React.useEffect(() => {
+      setDetail(null)
+      setDescriptions({})
+    }, [activeSourceId])
+
+    const selectSource = React.useCallback(async (id, closeManager) => {
+      if (id === undefined || id === null || id === '') return
+      if (id === '__manage__') {
+        setSourcesOpen(true)
+        return
+      }
+      if (sourceBusy) return
+      setSourceBusy(true)
+      try {
+        const payload = await api.selectSource(id)
+        const normalized = normalizeSources(payload)
+        setSources({ status: 'ready', items: normalized.sources, selected: normalized.selected, error: null })
+        setDetail(null)
+        setDescriptions({})
+        if (closeManager === true) setSourcesOpen(false)
+      } catch (error) {
+        pushToast('error', describeError(t, error))
+      } finally {
+        setSourceBusy(false)
+      }
+    }, [api, pushToast, sourceBusy, t])
+
+    const submitSource = async (event) => {
+      event.preventDefault()
+      if (sourceBusy) return
+      setSourceFormError(null)
+      const title = sourceForm.title.trim()
+      const url = sourceForm.url.trim()
+      if (title === '') {
+        setSourceFormError({ code: 'sources/invalid', message: 'title' })
+        return
+      }
+      if (url === '') {
+        setSourceFormError({ code: 'sources/invalid', message: 'url' })
+        return
+      }
+      setSourceBusy(true)
+      try {
+        const payload = await api.addSource({ kind: sourceForm.kind, title, url })
+        const normalized = normalizeSources(payload)
+        setSources({ status: 'ready', items: normalized.sources, selected: normalized.selected, error: null })
+        setSourceForm({ kind: 'skills-sh', title: '', url: '' })
+        setSourcesOpen(false)
+        const created = payload !== null && typeof payload === 'object' && payload.source !== null && typeof payload.source === 'object'
+          ? payload.source.id
+          : undefined
+        if (typeof created === 'string' && created !== '') {
+          const selectedPayload = await api.selectSource(created)
+          const selected = normalizeSources(selectedPayload)
+          setSources({ status: 'ready', items: selected.sources, selected: selected.selected, error: null })
+        }
+      } catch (error) {
+        setSourceFormError(error)
+      } finally {
+        setSourceBusy(false)
+      }
+    }
+
+    const removeSource = async (id) => {
+      if (sourceBusy) return
+      setSourceBusy(true)
+      try {
+        const payload = await api.removeSource(id)
+        const normalized = normalizeSources(payload)
+        setSources({ status: 'ready', items: normalized.sources, selected: normalized.selected, error: null })
+      } catch (error) {
+        pushToast('error', describeError(t, error))
+      } finally {
+        setSourceBusy(false)
+      }
+    }
+
     const runSearch = React.useCallback(async (text) => {
       searchSeq.current += 1
       const seq = searchSeq.current
       setSearch((previous) => ({ ...previous, status: 'loading', error: null, warning: null }))
       try {
-        const payload = await api.search(text)
+        const payload = await api.search(text, activeSourceId)
         if (!mounted.current || searchSeq.current !== seq) return
+        const market = payload !== null && typeof payload === 'object' && payload.source !== null && typeof payload.source === 'object'
+          ? {
+            id: typeof payload.source.id === 'string' ? payload.source.id : '',
+            kind: typeof payload.source.kind === 'string' ? payload.source.kind : '',
+            title: typeof payload.source.title === 'string' ? payload.source.title : '',
+            url: typeof payload.source.url === 'string' ? payload.source.url : '',
+          }
+          : null
         setSearch({
           status: 'ready',
           items: normalizeSkills(payload.skills),
@@ -1372,12 +1836,13 @@ function createMarketPage({ api, fallbackT, getLocale }) {
           warning: typeof payload.warning === 'string' ? payload.warning : null,
           error: null,
           query: typeof payload.query === 'string' ? payload.query : text,
+          source: market,
         })
       } catch (error) {
         if (!mounted.current || searchSeq.current !== seq) return
         setSearch((previous) => ({ ...previous, status: 'error', error }))
       }
-    }, [api])
+    }, [activeSourceId, api])
 
     React.useEffect(() => {
       void runSearch('')
@@ -1401,11 +1866,20 @@ function createMarketPage({ api, fallbackT, getLocale }) {
 
     React.useEffect(() => {
       if (search.status !== 'ready' || search.items.length === 0) return undefined
+      const seeded = {}
+      for (const item of search.items) {
+        const key = skillKey(item)
+        if (descriptions[key] !== undefined || typeof item.description !== 'string' || item.description === '') continue
+        seeded[key] = item.description
+      }
+      if (Object.keys(seeded).length > 0) {
+        setDescriptions((previous) => ({ ...seeded, ...previous }))
+      }
       const missing = []
       const seen = new Set()
       for (const item of search.items.slice(0, LAZY_DESCRIPTIONS)) {
         const key = skillKey(item)
-        if (descriptions[key] !== undefined || seen.has(key)) continue
+        if (descriptions[key] !== undefined || seeded[key] !== undefined || seen.has(key)) continue
         seen.add(key)
         missing.push(item)
       }
@@ -1418,7 +1892,7 @@ function createMarketPage({ api, fallbackT, getLocale }) {
           cursor += 1
           const key = skillKey(item)
           try {
-            const payload = await api.detail(item.source, item.skillId)
+            const payload = await api.detail(item.source, item.skillId, search.source?.id ?? activeSourceId)
             if (!cancelled) {
               setDescriptions((previous) => previous[key] !== undefined
                 ? previous
@@ -1435,7 +1909,7 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       return () => { cancelled = true }
       // `descriptions` is intentionally excluded: the effect seeds the cache
       // for the current result page and must not loop on its own writes.
-    }, [search.status, search.items, api])
+    }, [activeSourceId, api, search.source, search.status, search.items])
 
     const loadDetail = React.useCallback((entry) => {
       const key = skillKey(entry)
@@ -1449,7 +1923,7 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       if (known !== undefined) return
       detailSeq.current += 1
       const seq = detailSeq.current
-      api.detail(entry.source, entry.skillId).then((payload) => {
+      api.detail(entry.source, entry.skillId, search.source?.id ?? activeSourceId).then((payload) => {
         if (!mounted.current || detailSeq.current !== seq) return
         const description = typeof payload.description === 'string' ? payload.description : ''
         setDescriptions((previous) => ({ ...previous, [key]: description }))
@@ -1462,7 +1936,7 @@ function createMarketPage({ api, fallbackT, getLocale }) {
           ? { ...previous, status: 'error', error }
           : previous)
       })
-    }, [api, descriptions])
+    }, [activeSourceId, api, descriptions, search.source])
 
     const retryDetail = React.useCallback(() => {
       if (detail !== null) loadDetail(detail.entry)
@@ -1618,6 +2092,20 @@ function createMarketPage({ api, fallbackT, getLocale }) {
       const showWarning = search.warning !== null && !loading
       return h(React.Fragment, null,
         h('form', { className: 'dshsm-toolbar', role: 'search', onSubmit: submitSearch },
+          h('div', { className: 'dshsm-sourcePick' },
+            h('select', {
+              className: 'dshsm-sourceSelect',
+              value: activeSourceId ?? '',
+              disabled: sourceBusy || sources.status === 'loading',
+              'aria-label': t('sourceSwitcherLabel'),
+              onChange: (event) => { void selectSource(event.currentTarget.value); },
+            },
+            sources.items.length === 0
+              ? h('option', { value: '' }, sources.status === 'loading' ? t('loading') : t('sourceUnavailable'))
+              : sources.items.map((source) => h('option', { key: source.id, value: source.id }, source.title)),
+            h('option', { value: '__manage__' }, t('sourceManage')),
+            ),
+          ),
           h('div', { className: 'dshsm-search' },
             h('span', { className: 'dshsm-searchIcon' }, h(SearchIcon)),
             h('input', {
@@ -1669,6 +2157,10 @@ function createMarketPage({ api, fallbackT, getLocale }) {
         h('div', { className: 'dshsm-resultsHead' },
           h('span', { className: 'dshsm-resultsLabel' },
             search.seed ? t('seedLabel') : t('resultsLabel', { count: search.items.length })),
+          h('span', { className: 'dshsm-resultsSource' },
+            (search.source !== null && search.source !== undefined && typeof search.source.title === 'string'
+              ? search.source.title
+              : (activeSource === null ? '' : activeSource.title))),
           search.cached ? h('span', { className: 'dshsm-resultsHint' }, t('cachedLabel')) : null,
         ),
         h(TrustNotice, { t }),
@@ -1684,6 +2176,8 @@ function createMarketPage({ api, fallbackT, getLocale }) {
             title: t('errorTitle'),
             body: describeError(t, search.error) === t('errorUnknown') ? t('errorBody') : describeError(t, search.error),
             onRetry: () => { void runSearch(query) },
+            secondaryLabel: t('sourceManage'),
+            onSecondary: () => { setSourcesOpen(true) },
           })
           : null,
         !hasItems && search.status === 'ready'
@@ -1979,6 +2473,21 @@ function createMarketPage({ api, fallbackT, getLocale }) {
         onRetry: () => { void openPreview(preview.entry) },
         onInstall: () => { void confirmInstall() },
       }),
+      sourcesOpen
+        ? h(SourceDialog, {
+          t,
+          sources: { status: sources.status, items: sources.items, selected: sources.selected, error: sources.error },
+          form: sourceForm,
+          formError: sourceFormError,
+          busy: sourceBusy,
+          onClose: () => { if (!sourceBusy) setSourcesOpen(false) },
+          onRetry: () => { void loadSources() },
+          onFormChange: (next) => { setSourceForm(next); setSourceFormError(null) },
+          onSubmit: submitSource,
+          onSelect: (id) => { void selectSource(id, true) },
+          onRemove: (id) => { void removeSource(id) },
+        })
+        : null,
       toasts.length === 0 ? null : h('div', { className: 'dshsm-toasts', role: 'status', 'aria-live': 'polite' },
         toasts.map((toast) => h('div', {
           key: toast.id,

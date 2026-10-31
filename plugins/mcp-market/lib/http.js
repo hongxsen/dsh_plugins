@@ -27,6 +27,8 @@ const JSON_HEADERS = {
 /** Dispatch table: `METHOD /path` to service method. */
 const ROUTES = new Map([
   ['GET /api/health', 'health'],
+  ['GET /api/sources', 'sources'],
+  ['POST /api/sources', 'sourceAction'],
   ['GET /api/search', 'search'],
   ['GET /api/detail', 'detail'],
   ['POST /api/preview', 'preview'],
@@ -170,17 +172,19 @@ export function createRequestHandler({ service, logger } = {}) {
         throw new ApiError('request/not-found', 'API endpoint not found.', 404)
       }
 
-      if (method === 'POST' && (route === 'preview' || route === 'install' || route === 'toggle' || route === 'remove')) {
+      if (method === 'POST' && (route === 'preview' || route === 'install' || route === 'toggle' || route === 'remove' || route === 'sourceAction')) {
         const body = await readJsonBody(req)
         switch (route) {
           case 'preview':
-            return sendJson(res, 200, await service.preview(body.registryName))
+            return sendJson(res, 200, await service.preview(body.registryName, body.source))
           case 'install':
             return sendJson(res, 200, await service.install(body))
           case 'toggle':
             return sendJson(res, 200, await service.toggle(body))
           case 'remove':
             return sendJson(res, 200, await service.remove(body))
+          case 'sourceAction':
+            return sendJson(res, 200, await service.sourceAction(body))
           default:
             break
         }
@@ -189,14 +193,20 @@ export function createRequestHandler({ service, logger } = {}) {
       switch (route) {
         case 'health':
           return sendJson(res, 200, await service.health())
+        case 'sources':
+          return sendJson(res, 200, await service.sources())
         case 'search':
-          return sendJson(res, 200, await service.search(queryValue(url, 'q') ?? '', queryValue(url, 'cursor')))
+          return sendJson(res, 200, await service.search(
+            queryValue(url, 'q') ?? '',
+            queryValue(url, 'cursor'),
+            queryValue(url, 'source'),
+          ))
         case 'detail': {
           const name = queryValue(url, 'name')
           if (typeof name !== 'string' || name.length === 0) {
             throw mcpError('invalid-entry', 'The registry name is required.', 400)
           }
-          return sendJson(res, 200, await service.detail(name))
+          return sendJson(res, 200, await service.detail(name, queryValue(url, 'source')))
         }
         case 'installed':
           return sendJson(res, 200, await service.installed())

@@ -15,6 +15,18 @@ export const PANEL_ID = 'mcp-market'
 /** Same-origin API base. */
 export const API_BASE = '/dsh-mcp-market/api'
 
+/** The builtin source id, mirrored from the Host. */
+export const BUILTIN_SOURCE_ID = 'mcp-registry'
+
+/** Source kinds accepted by the Host. */
+export const SOURCE_KINDS = Object.freeze(['mcp-registry', 'index'])
+
+/** Maximum source title length, mirrored from the Host. */
+export const MAX_SOURCE_TITLE = 80
+
+/** Maximum source URL length, mirrored from the Host. */
+export const MAX_SOURCE_URL = 2048
+
 /** Search debounce, per the product contract. */
 export const SEARCH_DEBOUNCE_MS = 300
 
@@ -42,6 +54,12 @@ export const ERROR_KEYS = Object.freeze({
   'mcp/not-managed': 'error.notManaged',
   'mcp/patch-failed': 'error.patchFailed',
   'mcp/install-failed': 'error.installFailed',
+  'sources/invalid': 'error.sourcesInvalid',
+  'sources/limit': 'error.sourcesLimit',
+  'sources/not-found': 'error.sourcesNotFound',
+  'sources/builtin': 'error.sourcesBuiltin',
+  'sources/fetch-failed': 'error.sourcesFetchFailed',
+  'sources/invalid-index': 'error.sourcesInvalidIndex',
   'request/timeout': 'error.timeout',
   'request/network': 'error.fetchFailed',
 })
@@ -110,6 +128,62 @@ export function truncate(value, max) {
   const text = typeof value === 'string' ? value : ''
   if (!Number.isFinite(max) || max <= 0 || text.length <= max) return text
   return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`
+}
+
+/** Human-readable source title, localizing the builtin. */
+export function displaySourceTitle(t, source) {
+  if (source?.builtin === true || source?.id === BUILTIN_SOURCE_ID) return t('sources.builtinTitle')
+  return typeof source?.title === 'string' ? source.title : ''
+}
+
+/** Localized label for one source kind. */
+export function sourceKindLabel(t, kind) {
+  return kind === 'index' ? t('sources.kind.index') : t('sources.kind.mcpRegistry')
+}
+
+/** Source label for one installed record; old records are official-registry rows. */
+export function installedSourceLabel(t, row) {
+  if (typeof row?.sourceTitle === 'string' && row.sourceTitle.length > 0) {
+    return row.sourceId === BUILTIN_SOURCE_ID ? t('sources.builtinTitle') : row.sourceTitle
+  }
+  if (typeof row?.sourceId === 'string' && row.sourceId.length > 0) {
+    return row.sourceId === BUILTIN_SOURCE_ID ? t('sources.builtinTitle') : row.sourceId
+  }
+  if (typeof row?.registryName === 'string' && row.registryName.length > 0) return t('sources.builtinTitle')
+  return ''
+}
+
+/**
+ * Validate the add-source form before the Host sees it.
+ * @returns a map of field name to dictionary key, empty when valid.
+ */
+export function validateSourceDraft(draft) {
+  const errors = {}
+  const title = typeof draft?.title === 'string' ? draft.title.trim() : ''
+  if (title.length === 0) errors.title = 'sources.field.titleRequired'
+  else if (title.length > MAX_SOURCE_TITLE) errors.title = 'sources.field.titleTooLong'
+  const rawUrl = typeof draft?.url === 'string' ? draft.url.trim() : ''
+  if (rawUrl.length === 0) {
+    errors.url = 'sources.field.urlRequired'
+  } else if (rawUrl.length > MAX_SOURCE_URL) {
+    errors.url = 'sources.field.urlInvalid'
+  } else {
+    let parsed
+    try {
+      parsed = new URL(rawUrl)
+    } catch {
+      parsed = null
+    }
+    if (parsed === null
+      || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+      || parsed.username !== ''
+      || parsed.password !== ''
+      || rawUrl.includes('#')) {
+      errors.url = 'sources.field.urlInvalid'
+    }
+  }
+  if (!SOURCE_KINDS.includes(draft?.kind)) errors.kind = 'sources.field.kindInvalid'
+  return errors
 }
 
 /** UTF-8 byte length without allocating a Blob. */

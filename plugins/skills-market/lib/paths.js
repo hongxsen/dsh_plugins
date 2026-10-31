@@ -62,6 +62,11 @@ export function metadataPathOf(dshHome) {
   return join(storageRootOf(dshHome), 'installed.json')
 }
 
+/** Absolute path of the market-source store. */
+export function sourcesPathOf(dshHome) {
+  return join(storageRootOf(dshHome), 'sources.json')
+}
+
 /**
  * Render a path inside the OS home with `~`.
  * @param path - absolute path.
