@@ -136,8 +136,8 @@
         "zh": "技能市场"
       },
       "description": {
-        "en": "Search skills.sh, inspect every file and security warning, and install community agent skills into ~/.dsh/skills from a full-page sidebar panel. Installed skills can be reviewed and removed without touching hand-managed directories.",
-        "zh": "从 skills.sh 搜索社区技能，预览全部文件与安全提示后安装到 ~/.dsh/skills；侧边栏独立页面管理已安装技能，手工放入的目录保持只读。"
+        "en": "Search skills.sh or a custom skills.sh-compatible/JSON market source, inspect every file and security warning, and install community agent skills into ~/.dsh/skills. Manage sources and installed skills from one sidebar panel.",
+        "zh": "从 skills.sh 或自定义的 skills.sh 兼容/JSON 市场源搜索社区技能，预览全部文件与安全提示后安装到 ~/.dsh/skills；侧边栏可切换市场源并管理已安装技能。"
       },
       "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlNraWxscyBNYXJrZXQiPgogIDxyZWN0IHg9IjE3IiB5PSIxNSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjM2IiByeD0iNyIgdHJhbnNmb3JtPSJyb3RhdGUoLTEwIDMyIDMzKSIgZmlsbD0iI2U2ZWVmOSIgc3Ryb2tlPSIjYTZiYWQzIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSIxMiIgeT0iMTIiIHdpZHRoPSIzOCIgaGVpZ2h0PSI0MiIgcng9IjgiIGZpbGw9IiNmYmZkZmYiIHN0cm9rZT0iIzdkOTdiNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGcgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik0yMCAyNGgyMiIgc3Ryb2tlPSIjOTFhOWM0IiBzdHJva2Utd2lkdGg9IjIuNiIvPgogICAgPHBhdGggZD0iTTIwIDMyaDE3IiBzdHJva2U9IiNjM2QzZTYiIHN0cm9rZS13aWR0aD0iMi40Ii8+CiAgICA8cGF0aCBkPSJNMjAgMzhoMTMiIHN0cm9rZT0iI2MzZDNlNiIgc3Ryb2tlLXdpZHRoPSIyLjQiLz4KICAgIDxwYXRoIGQ9Ik0yMCA0NGg5IiBzdHJva2U9IiNjZmRlZWYiIHN0cm9rZS13aWR0aD0iMi4yIi8+CiAgPC9nPgogIDxnIGZpbGw9IiNmMGE5NGYiPgogICAgPHBhdGggZD0iTTQ1IDE3LjVjLjUgMy4xIDEuNCA0IDQuNSA0LjUtMy4xLjUtNCAxLjQtNC41IDQuNS0uNS0zLjEtMS40LTQtNC41LTQuNSAzLjEtLjUgNC0xLjQgNC41LTQuNVoiLz4KICAgIDxjaXJjbGUgY3g9IjUwLjUiIGN5PSIxNC41IiByPSIxLjQiLz4KICAgIDxjaXJjbGUgY3g9IjQxIiBjeT0iMTMiIHI9IjEuMSIvPgogIDwvZz4KPC9zdmc+Cg==",
       "author": "hongxsen",
@@ -152,10 +152,24 @@
           "skills.sh",
           "marketplace",
           "agent-skills",
+          "custom-market",
           "installer"
         ]
       },
       "versions": [
+        {
+          "version": "0.2.0",
+          "publishTimestamp": 1793422610,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/hongxsen/dsh_plugins",
+            "commit": "8f15b906a9e84f9f25408b976b72d09608d7052f",
+            "path": "plugins/skills-market"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-0 <0.3.0"
+          }
+        },
         {
           "version": "0.1.0",
           "publishTimestamp": 1793420093,
@@ -178,8 +192,8 @@
         "zh": "MCP 市场"
       },
       "description": {
-        "en": "Search the official MCP Registry, choose a hosted endpoint or an npx/uvx/docker package, fill the required secrets, and manage the resulting @deepseek-ai/dsh-mcp-client rows from a sidebar panel. HMR applies changes live; external rows stay read-only.",
-        "zh": "搜索官方 MCP Registry，选择托管地址或 npx/uvx/docker 包，填写必需密钥，从侧边栏管理 @deepseek-ai/dsh-mcp-client 配置行。有 HMR 时即时生效，手工配置的行保持只读。"
+        "en": "Search the official MCP Registry or a custom MCP Registry-compatible/JSON market source, choose a hosted endpoint or an npx/uvx/docker package, fill the required secrets, and manage the resulting @deepseek-ai/dsh-mcp-client rows. HMR applies changes live; external rows stay read-only.",
+        "zh": "从官方 MCP Registry 或自定义的 Registry 兼容/JSON 市场源搜索服务器，选择托管地址或 npx/uvx/docker 包，填写必需密钥并管理 @deepseek-ai/dsh-mcp-client 配置行。有 HMR 时即时生效，手工配置的行保持只读。"
       },
       "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Ik1DUCBNYXJrZXQiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMyZjZmZTQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMWY5ZDhmIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwbHVnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZmZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNkY2U5ZmYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE1IiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIG9wYWNpdHk9IjAuMzIiIGZpbGw9IiNmZmZmZmYiPgogICAgPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMS44Ii8+CiAgICA8Y2lyY2xlIGN4PSI1MSIgY3k9IjUyIiByPSIyLjIiLz4KICAgIDxjaXJjbGUgY3g9IjUzIiBjeT0iMTMiIHI9IjEuMiIvPgogICAgPGNpcmNsZSBjeD0iMTEiIGN5PSI0NiIgcj0iMS4yIi8+CiAgPC9nPgogIDxnIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44OCI+CiAgICA8cGF0aCBkPSJNMTggMjMuNSAzMiAxNWwxNCA4LjUiLz4KICAgIDxwYXRoIGQ9Ik0xOCA0MC41IDMyIDQ5bDE0LTguNSIvPgogICAgPHBhdGggZD0iTTE4IDIzLjV2MTciLz4KICAgIDxwYXRoIGQ9Ik00NiAyMy41djE3Ii8+CiAgICA8cGF0aCBkPSJNMzIgMTV2OSIvPgogICAgPHBhdGggZD0iTTMyIDQwdjkiLz4KICA8L2c+CiAgPGNpcmNsZSBjeD0iMTgiIGN5PSIyMy41IiByPSIzLjEiIGZpbGw9IiM5ZmUzZDUiLz4KICA8Y2lyY2xlIGN4PSI0NiIgY3k9IjIzLjUiIHI9IjMuMSIgZmlsbD0iIzlmZTNkNSIvPgogIDxjaXJjbGUgY3g9IjE4IiBjeT0iNDAuNSIgcj0iMy4xIiBmaWxsPSIjOWZlM2Q1Ii8+CiAgPGNpcmNsZSBjeD0iNDYiIGN5PSI0MC41IiByPSIzLjEiIGZpbGw9IiM5ZmUzZDUiLz4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgtMTggMzIgMzIpIj4KICAgIDxyZWN0IHg9IjI3IiB5PSIyMiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjE3IiByeD0iMy40IiBmaWxsPSJ1cmwoI3BsdWcpIi8+CiAgICA8cGF0aCBkPSJNMzAgMzl2NS41TTM0IDM5djUuNSIgc3Ryb2tlPSIjZGNlOWZmIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8cGF0aCBkPSJNMjkuMiAyMnYtNC41TTM0LjggMjJ2LTQuNSIgc3Ryb2tlPSIjZGNlOWZmIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMwLjUiIHI9IjIuMSIgZmlsbD0iIzFmOWQ4ZiIvPgogIDwvZz4KPC9zdmc+Cg==",
       "author": "hongxsen",
@@ -194,10 +208,24 @@
           "model-context-protocol",
           "registry",
           "marketplace",
+          "custom-market",
           "dsh-mcp-client"
         ]
       },
       "versions": [
+        {
+          "version": "0.2.0",
+          "publishTimestamp": 1793422610,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/hongxsen/dsh_plugins",
+            "commit": "8f15b906a9e84f9f25408b976b72d09608d7052f",
+            "path": "plugins/mcp-market"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-0 <0.3.0"
+          }
+        },
         {
           "version": "0.1.0",
           "publishTimestamp": 1793420093,
