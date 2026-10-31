@@ -1,0 +1,54 @@
+{
+  "name": "@hongxsen/dsh-im-bot",
+  "version": "0.1.0",
+  "description": "Multi-platform WeCom, QQ and Feishu bot interactions for DeepSeek Harness",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json",
+    "./locale/zh.json": "./locale/zh.json",
+    "./locale/en.json": "./locale/en.json",
+    "./icon.svg": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "locale",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:desktop": "node test/desktop-integration.mjs",
+    "prepack": "node --check index.js"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.1-0 <0.3.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.76.0",
+    "ws": "^8.18.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hongxsen/dsh_plugins.git",
+    "directory": "plugins/im-bot"
+  },
+  "homepage": "https://github.com/hongxsen/dsh_plugins/tree/main/plugins/im-bot#readme",
+  "keywords": [
+    "deepseek-harness",
+    "wecom",
+    "qq-bot",
+    "feishu",
+    "lark"
+  ],
+  "license": "MIT"
+}

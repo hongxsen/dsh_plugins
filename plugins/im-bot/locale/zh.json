@@ -1,0 +1,4 @@
+{
+  "name": "多平台 IM 机器人",
+  "description": "通过企业微信、QQ 官方机器人和飞书与 DeepSeek Harness 交互，支持多连接、会话恢复与进度反馈。"
+}

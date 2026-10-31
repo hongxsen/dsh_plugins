@@ -1,0 +1,32 @@
+{
+  connections: [
+    {
+      id: "work-wecom",
+      type: "wecom",
+      enabled: true,
+      botId: "${WECOM_BOT_ID}",
+      secret: "${WECOM_SECRET}",
+      cwd: "/absolute/path/to/workspace",
+      allowFrom: ["wecom-user-id"],
+      allowChats: ["wecom-group-chat-id"],
+    },
+    {
+      id: "personal-qq",
+      type: "qq",
+      appId: "${QQ_APP_ID}",
+      appSecret: "${QQ_APP_SECRET}",
+      cwd: "/absolute/path/to/workspace",
+      allowFrom: ["opaque-user-openid"],
+      allowChats: ["opaque-group-openid"],
+    },
+    {
+      id: "team-feishu",
+      type: "feishu",
+      appId: "${FEISHU_APP_ID}",
+      appSecret: "${FEISHU_APP_SECRET}",
+      cwd: "/absolute/path/to/workspace",
+      allowFrom: ["open_id"],
+      allowChats: ["chat_id"],
+    },
+  ],
+}

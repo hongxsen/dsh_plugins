@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Multi-platform IM Bot">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2bb3ff"/>
+      <stop offset="0.52" stop-color="#1667d8"/>
+      <stop offset="1" stop-color="#7357e8"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="11" width="54" height="42" rx="12" fill="url(#g)"/>
+  <path d="M32 53v6M32 11V6" stroke="#315fd5" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="5" r="2.6" fill="#7357e8"/>
+  <circle cx="20" cy="30" r="4" fill="#fff"/>
+  <circle cx="32" cy="30" r="4" fill="#fff" opacity="0.9"/>
+  <circle cx="44" cy="30" r="4" fill="#fff"/>
+  <path d="M22 42q10 7 20 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+</svg>
