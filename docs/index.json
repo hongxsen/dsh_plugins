@@ -296,6 +296,50 @@
           }
         }
       ]
+    },
+    {
+      "name": "@hongxsen/dsh-im-bot",
+      "title": {
+        "en": "IM Bot",
+        "zh": "多平台 IM 机器人"
+      },
+      "description": {
+        "en": "Connect DSH to WeCom, QQ official bots, and Feishu/Lark through multiple isolated connections, with persistent conversations, progress replies, slash commands, and per-connection allowlists.",
+        "zh": "通过多个相互隔离的连接把 DSH 接入企微、QQ 官方机器人和飞书/Lark，支持持久会话、进度回复、斜杠命令和按连接配置白名单。"
+      },
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Ik11bHRpLXBsYXRmb3JtIElNIEJvdCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMmJiM2ZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC41MiIgc3RvcC1jb2xvcj0iIzE2NjdkOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3MzU3ZTgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjUiIHk9IjExIiB3aWR0aD0iNTQiIGhlaWdodD0iNDIiIHJ4PSIxMiIgZmlsbD0idXJsKCNnKSIvPgogIDxwYXRoIGQ9Ik0zMiA1M3Y2TTMyIDExVjYiIHN0cm9rZT0iIzMxNWZkNSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjUiIHI9IjIuNiIgZmlsbD0iIzczNTdlOCIvPgogIDxjaXJjbGUgY3g9IjIwIiBjeT0iMzAiIHI9IjQiIGZpbGw9IiNmZmYiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMwIiByPSI0IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjkiLz4KICA8Y2lyY2xlIGN4PSI0NCIgY3k9IjMwIiByPSI0IiBmaWxsPSIjZmZmIi8+CiAgPHBhdGggZD0iTTIyIDQycTEwIDcgMjAgMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K",
+      "author": "hongxsen",
+      "homepage": "https://github.com/hongxsen/dsh_plugins#readme",
+      "repository": {
+        "url": "https://github.com/hongxsen/dsh_plugins"
+      },
+      "metadata": {
+        "category": "extension",
+        "keywords": [
+          "im",
+          "wecom",
+          "qqbot",
+          "feishu",
+          "lark",
+          "chatbot",
+          "multi-connection"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 1793434289,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/hongxsen/dsh_plugins",
+            "commit": "c5faaa31b4b059e7248947e6ffc76829916fce4c",
+            "path": "plugins/im-bot"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-0 <0.3.0"
+          }
+        }
+      ]
     }
   ]
 }
